@@ -7,14 +7,12 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-	cout << "Hello world" << endl;
 	XInitThreads();
 
 	cout << endl;
-	cout << " ############ FuGa ##################" << endl;
-	cout << " # FutureGames - Escape virtuality! #" << endl;
+	cout << " ############ Videochat #############" << endl;
+	cout << " # Escape virtuality!               #" << endl;
 	cout << " # Version alpha 1.0                #" << endl;
-	cout << " # Licence: unknown                 #" << endl;
 	cout << " # ################################ #" << endl;
 	cout << endl;
 
