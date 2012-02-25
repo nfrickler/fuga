@@ -91,8 +91,8 @@ void MyConfig::_readConfig() {
 	if (m_config.find("udp_quality") == m_config.end()) m_config["udp_quality"] = "80";
 	if (m_config.find("tcp_ip") == m_config.end()) m_config["tcp_ip"] = "127.0.0.1";
 	if (m_config.find("tcp_port") == m_config.end()) m_config["tcp_port"] = "7979";
-	if (m_config.find("img_width") == m_config.end()) m_config["img_width"] = "64";
-	if (m_config.find("img_height") == m_config.end()) m_config["img_height"] = "48";
+	if (m_config.find("img_width") == m_config.end()) m_config["img_width"] = "320";
+	if (m_config.find("img_height") == m_config.end()) m_config["img_height"] = "240";
 	if (m_config.find("root_ip") == m_config.end()) m_config["root_ip"] = "127.0.0.1";
 	if (m_config.find("root_port") == m_config.end()) m_config["root_port"] = "7777";
 }

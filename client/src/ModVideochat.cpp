@@ -2,6 +2,7 @@
 #include <QtGui>
 #include <iostream>
 #include <QMessageBox>
+#include <sstream>
 
 using namespace std;
 

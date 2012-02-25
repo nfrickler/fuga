@@ -31,6 +31,9 @@ class MyModule : public QObject {
 		QThread* m_thread2;
 		QTimer* m_udpserver_timer;
 
+	signals:
+		void startStreaming();
+
 };
 
 #endif // __MYMODULE_H__

@@ -4,6 +4,8 @@
 #include <sstream>
 #include <QDataStream>
 #include <QNetworkInterface>
+#include <QBuffer>
+#include <QImage>
 
 using namespace std;
 
@@ -22,7 +24,6 @@ MyUdpServer::MyUdpServer (QHostAddress* ip, quint16 port, quint32 mtu, quint16 q
 	m_image_number = 1 + rand() % (59999 - 1 + 1);
 	timelag = 0;
 
-	m_last_full_image = NULL;
 	m_full_frame_rate = 100;
 }
 
@@ -53,9 +54,10 @@ void MyUdpServer::startServer () {
 
 /* send frame over network
  */
-void MyUdpServer::sendImage (IplImage* myimage) {
+void MyUdpServer::sendImage (QImage* myimage) {
 	QTime* mytime = new QTime();
 	mytime->start();
+	cout << "MyUdpServer: size:" << myimage->byteCount() << " format:" << myimage->format() << endl;
 
 	// return if no frame
 	if (myimage == NULL) return;
@@ -65,24 +67,14 @@ void MyUdpServer::sendImage (IplImage* myimage) {
 		if (m_image_number > 60000) m_image_number = 1;
 	bool is_full = ((m_image_number % m_full_frame_rate != 0)) ? false : true;
 
-	// tmp object
-	IplImage* fIplImageHeader;
-	fIplImageHeader = cvCreateImageHeader(cvSize(myimage->width, myimage->height), 8, 3);
-	fIplImageHeader->imageData = (char*) myimage->imageData;
-	//cout << "Size of raw: " << fIplImageHeader->imageSize << endl;
-
-	// convert iplimage to jpg
-	vector<int> p;
-	p.push_back(CV_IMWRITE_JPEG_QUALITY);
-	p.push_back(m_quality);
-	vector<unsigned char> buf;
-	cv::imencode(".jpg", fIplImageHeader, buf, p);
-	//cv::imwrite("/home/nif7/test1.jpg", fIplImageHeader);
-	cvReleaseImage(&fIplImageHeader);
-	fIplImageHeader = NULL;
-
 	// convert vector<unsigned char> to QByteArray
-	mybuffer = new QByteArray((char*) &buf[0], buf.size());
+	QByteArray* mybuffer = new QByteArray();
+	QBuffer buf(mybuffer);
+
+	// BUG: crashes here after some time!
+	cout << " - before save" << endl;
+	myimage->save(&buf, "JPEG");
+	cout << " - after save" << endl;
 
 	/*
 	// compress data
@@ -99,7 +91,6 @@ void MyUdpServer::sendImage (IplImage* myimage) {
 	quint32 curr_size = 0;
 	quint32 curr_pos = 0;
 	quint32 curr_flush = 1;
-
 	quint32 buffersize = mybuffer->size();
 	while(mybuffer->size() > 0) {
 		QByteArray datagram = QByteArray();
@@ -141,13 +132,15 @@ void MyUdpServer::sendImage (IplImage* myimage) {
 }
 
 // send slot
-void MyUdpServer::sendNext(IplImage* myimage) {
+void MyUdpServer::sendNext(QImage* myimage) {
 	if (timelag > 40) {
-		cvReleaseImage(&myimage);
 		myimage = NULL;
+		delete myimage;
 		cout << "MyUdpServer: xxxxxxxxxx Skipped frame (" << timelag << "ms) xxxxxxxxxxxxx" << endl;
 		timelag-= 20;
 		return;
 	}
 	sendImage(myimage);
+	myimage = NULL;
+	delete myimage;
 }

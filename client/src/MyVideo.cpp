@@ -71,7 +71,7 @@ void MyVideo::resizeGL(int inwidth, int inheight) {
 	m_height = inheight;
 	m_width = inwidth;
 
-	int pos_v = (this->height() - m_height) / 2;
+	//int pos_v = (this->height() - m_height) / 2;
 
 	glViewport (20, 20, m_width, m_height);
 	glMatrixMode (GL_PROJECTION);
@@ -88,6 +88,7 @@ void MyVideo::updateWidget(QImage* myimage) {
 
 	// skip image?
 	if (timelag > 40) {
+		delete myimage;
 		myimage = NULL;
 		timelag-= 20;
 		cout << "MyVideo: xxxxxxxxxxxxxxx skip image xxxxxxxxxxxxx" << endl;
@@ -114,12 +115,14 @@ void MyVideo::updateWidget(QImage* myimage) {
 	*m_image = QGLWidget::convertToGLFormat(m_tmp_image->mirrored(true, false));
 	delete myimage;
 	delete m_tmp_image;
+	m_tmp_image = NULL;
+	myimage = NULL;
 
 	updateGL();
 
 	timelag+= mytime->elapsed() - 30;
 	if (timelag < 0) timelag = 0;
-	cout << "MyVideo: Image drawn in " << mytime->elapsed() << "ms" << endl;
+	cout << "MyVideo: Image drawn in " << mytime->elapsed() << "|" << timelag << "ms" << endl;
 }
 
 void MyVideo::doResize(int width, int height) {

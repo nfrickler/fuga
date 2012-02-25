@@ -1,11 +1,10 @@
-# README for videochat 
+# README for FuGa
 
 This project is divided into a server (perl) and a client (c++)
 and enables you to have a Videochat with someelse - at least
 that's the goal...
 
 There is no stable release yet.
-This project don't even have a real name yet...
 
-The client is based on Qt 4.8 and OpenCV.
+The client is based on Qt 4.8 and gstreamer.
 

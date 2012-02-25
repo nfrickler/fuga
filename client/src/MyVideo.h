@@ -16,10 +16,6 @@ class MyVideo : public QGLWidget {
 		MyVideo(QHostAddress* ip, quint16 port, quint16 width, quint16 height);
 		~MyVideo();
 
-		// set/get frame
-		void setFrame(IplImage *myimage);
-		IplImage* getFrame();
-
 	protected:
 
 		// listening

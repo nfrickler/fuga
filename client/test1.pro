@@ -41,16 +41,18 @@ SOURCES = src/main.cpp \
     src/MeUser.cpp \
     src/Chatbox.cpp
 
-INCLUDEPATH += "\usr\include\opencv\cxcore\include" \
-	"\usr\include\opencv\cv\include" \
-	"\usr\include\opencv\cvaux\include" \
-	"\usr\include\otherlibs\highgui" \
-	"\usr\include\opencv\cxcore\include"
-
-LIBS +=  -lcv \
-  -lml \
-  -lcvaux \
-  -lhighgui \
-  -lcxcore
-
-TEMPLATE =  app
+# gstreamer
+CONFIG += link_pkgconfig
+PKGCONFIG += gstreamer-0.10
+INCLUDEPATH += /usr/include/glib-2.0 \
+	/usr/lib/glib-2.0/include \
+	/usr/include/libxml2
+LIBS += -pthread \
+	-lgstreamer-0.10 \
+	-lgobject-2.0 \
+	-lgmodule-2.0 \
+	-lgthread-2.0 \
+	-lrt \
+	-lxml2 \
+	-lglib-2.0 \
+	-lgstapp-0.10

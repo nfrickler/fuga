@@ -3,8 +3,6 @@
 
 #include <QObject>
 #include <QUdpSocket>
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
 #include <qgl.h>
 #include <map>
 #include <QTime>
@@ -20,10 +18,9 @@ class TStreamListener : public QObject {
 		bool doRun;
 
 		// frame handling
-		void receiveFrame();
+		QImage*  receiveFrame();
+		QImage* _puzzleImage();
 		bool isAcceptedFrame(quint16 frame);
-		bool _puzzleImage();
-		QByteArray* applyPatch(QByteArray* inarray1, QByteArray* patch);
 
 		// connection
 		QUdpSocket* m_udpSocket;
@@ -37,13 +34,10 @@ class TStreamListener : public QObject {
 		std::map<quint16, QByteArray*> m_imagebuffer;
 		std::map<quint16, quint16> m_checksumbuffer;
 		std::map<quint16, bool> m_isfull_buffer;
-		bool is_image;
 		quint16 m_current_image_num;
 		quint16 m_current_frame_num;
-		QImage* m_qimage;
 		QTime* m_time;
-
-		CvVideoWriter* m_writer;
+		QByteArray m_datagram;
 
 	signals:
 		void newFrame(QImage* myimage);

@@ -1,5 +1,6 @@
 #include "ContactHandler.h"
 #include <iostream>
+#include <sstream>
 
 struct contact;
 using namespace std;

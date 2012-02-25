@@ -19,7 +19,6 @@ TStreamListener::TStreamListener (QHostAddress* ip, quint16 port, quint16 width,
 	m_maxframenum = 60000;
 	m_current_frame_num = 0;
 	m_current_image_num = 0;
-	m_qimage = NULL;
 }
 
 /* start listening socket
@@ -38,12 +37,8 @@ void TStreamListener::startListening () {
 	connect(m_udpSocket, SIGNAL(readyRead()), this, SLOT(slot_processPendings()));
 	cout << "TStreamListener: Udp is listening on ip " << m_ip->toString().toAscii().data() << " port " << m_port << endl;
 
-	// start video writer
-	m_writer = NULL;
-	//m_writer = cvCreateVideoWriter("steamlistener.avi", CV_FOURCC('P','I','M','1'), 25, cvSize(m_width,m_height), 1);
-	if (m_writer == NULL) {
-		cout << "!!! ERROR: cvCreateVideoWriter" << endl;
-	}
+	// init
+	m_datagram = QByteArray();
 
 	// start time
 	m_time = new QTime();
@@ -61,40 +56,38 @@ void TStreamListener::slot_processPendings () {
 	m_time->restart();
 
 	// get all pending datagrams
-	is_image = false;
-	receiveFrame();
+	QImage* myimage = receiveFrame();
 
 	// no image?
-	if (!is_image) return;
+	if (myimage == NULL) return;
 
 	// push image to MyVideo
-	emit newFrame(m_qimage);
+	emit newFrame(myimage);
 
 	cout << "TStreamListener: current image: " << m_current_image_num << "(" << m_time->elapsed() << " ms)" << endl;
 }
 
 /* receive frame from network
  */
-void TStreamListener::receiveFrame () {
+QImage* TStreamListener::receiveFrame () {
 
 	// read all pending datagrams
-	QByteArray datagram = QByteArray();
 	quint16 num_frame = 0;
 	quint32 pos_data = 0;
 	while (m_udpSocket->hasPendingDatagrams()) {
 
 		// read datagram
-		datagram.resize(m_udpSocket->pendingDatagramSize());
-		if (datagram.size() <= 9) continue;
-		m_udpSocket->readDatagram(datagram.data(), datagram.size());
-		QDataStream ds (datagram);
+		m_datagram.resize(m_udpSocket->pendingDatagramSize());
+		if (m_datagram.size() <= 9) continue;
+		m_udpSocket->readDatagram(m_datagram.data(), m_datagram.size());
+		QDataStream ds (m_datagram);
 
 		// get num_frame and pos_data
 		ds >> num_frame >> pos_data;
 
 		// skip old frames
 		if (!isAcceptedFrame(num_frame)) continue;
-		//cout << "receive: " << num_frame << "|" << pos_data << endl;
+	//	cout << "receive: " << num_frame << " |" << pos_data << "   |" << m_current_frame_num << endl;
 
 		// get checksum and is_full
 		if (pos_data == 0) {
@@ -111,13 +104,18 @@ void TStreamListener::receiveFrame () {
 		m_imagebuffer[num_frame]->insert(pos_data, mybuff);
 
 		// check for complete image
-		if (pos_data == 0 && _puzzleImage()) return;
+		if (pos_data == 0) {
+			QImage* myimage = _puzzleImage();
+			if (myimage != NULL) return myimage;
+		}
 	}
+
+	return NULL;
 }
 
 /* puzzle image
  */
-bool TStreamListener::_puzzleImage () {
+QImage* TStreamListener::_puzzleImage () {
 
 	map<quint16, QByteArray*>::iterator curr,end;
 	for (curr = m_imagebuffer.begin(), end = m_imagebuffer.end();  curr != end;  curr++) {
@@ -126,8 +124,9 @@ bool TStreamListener::_puzzleImage () {
 		if (!isAcceptedFrame(curr->first)) {
 			cout << "TStreamListener: xxxxxxxxxxxxxxxxxxxxxxx num: " << curr->first << endl;
 			m_checksumbuffer.erase(curr->first);
-			m_imagebuffer.erase(curr->first);
 			m_isfull_buffer.erase(curr->first);
+			delete m_imagebuffer[curr->first];
+			m_imagebuffer.erase(curr->first);
 			continue;
 		}
 
@@ -145,29 +144,29 @@ bool TStreamListener::_puzzleImage () {
 		//*m_imagebuffer[curr->first] = qUncompress(*m_imagebuffer[curr->first]);
 
 		// convert qbytearray to qimage
-		is_image = true;
-		m_qimage = new QImage();
-		if (!m_qimage->loadFromData((uchar*) m_imagebuffer[curr->first]->data(), m_imagebuffer[curr->first]->size())) {
+		QImage* myimage = new QImage();
+		if (!myimage->loadFromData((uchar*) m_imagebuffer[curr->first]->data(), m_imagebuffer[curr->first]->size())) {
 			cout << "TStreamListener: Error: could not load image from data!" << endl;
-			is_image = false;
 		}
 
-		// write video
-	//	if (m_writer != NULL) cvWriteFrame( m_writer, fIplImageHeader );
-	//	cvReleaseImage(&fIplImageHeader);
-
 		// remove from map
-		m_imagebuffer.erase(curr->first);
 		m_checksumbuffer.erase(curr->first);
 		m_isfull_buffer.erase(curr->first);
+		delete m_imagebuffer[curr->first];
+		m_imagebuffer.erase(curr->first);
 
+/*
+		m_checksumbuffer.clear();
+		m_isfull_buffer.clear();
+		m_imagebuffer.clear();
+*/
 		// return
 		m_current_image_num = curr->first;
 		cout << "TStreamListener: Received image (" << m_current_image_num << ") <<<------------" << endl;
-		return true;
+		return myimage;
 	}
 
-	return false;
+	return NULL;
 }
 
 bool TStreamListener::isAcceptedFrame(quint16 frame) {
@@ -203,5 +202,6 @@ bool TStreamListener::isAcceptedFrame(quint16 frame) {
 		cout << "TStreamListener: Skip frame "
 			 << frame << " (current: " << m_current_frame_num << ")"
 			 << endl;
+
     return result;
 }

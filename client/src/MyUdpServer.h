@@ -3,8 +3,7 @@
 
 #include <QObject>
 #include <QUdpSocket>
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+#include <QImage>
 
 class MyUdpServer : public QObject {
 	Q_OBJECT
@@ -13,20 +12,16 @@ class MyUdpServer : public QObject {
 		MyUdpServer(QHostAddress* ip, quint16 port, quint32 mtu, quint16 quality);
 		~MyUdpServer();
 		void startServer();
-		void sendImage(IplImage* myimage);
+		void sendImage(QImage* myimage);
 
 	public slots:
-		void sendNext(IplImage* myimage);
+		void sendNext(QImage* myimage);
 
 	protected:
 		QUdpSocket * m_udpSocket;
-		QByteArray* m_last_full_image;
-		QByteArray* getDiff(QByteArray* inarray1, QByteArray* inarray2);
 
 		// current image
 		quint16 m_image_number;
-		QByteArray * mybuffer;
-		IplImage* fIplImageHeader;
 		int timelag;
 
 		// connection data

@@ -1,110 +1,158 @@
 #include "TWebcamGrabber.h"
 #include <iostream>
-#include <QTime>
+#include <sstream>
+#include <string>
 
 using namespace std;
+gboolean on_sink_message (GstBus * bus, GstMessage * message, ProgramData * data);
+TWebcamGrabber* thisisme;
 
 /* constructor
  */
 TWebcamGrabber::TWebcamGrabber (quint16 img_width, quint16 img_height,
 								string videopath, bool is_videostreaming) {
+	cout << "TWebcamGrabber: constructor..." << endl;
 
 	// save input
-	m_capture = NULL;
 	m_width = img_width;
 	m_height = img_height;
 	m_videopath = videopath;
 	m_isvideostreaming = is_videostreaming;
+	thisisme = this;
 
-	// start capturing
-	int count = (m_isvideostreaming) ? 1 : 0;
-	m_cap = cv::VideoCapture();
+	// wait 2 seconds for initialisation
+	sleep(2);
 
-	while (m_capture == NULL && !m_cap.isOpened()) {
-		cout << "Looking for webcam .... #################" << endl;
-		if (count == 0) {
-			m_cap.open(0);
-			usleep(500);
-
-			if(!m_cap.isOpened())
-				cout << "TWebcamGrabber: Could not access webcam!" << endl;
-		//	m_capture = cvCaptureFromCAM(-1);
-		}
-		if (count == 1) {
-			m_capture = cvCaptureFromFile(m_videopath.c_str());
-			if (m_capture != NULL) m_isvideostreaming = true;
-		}
-		if (count >= 2) { return; }
-		count++;
-	}
-	cout << "TWebcamGrabber: Webcam/Video found :-)" << endl;
-
-	// start video writer
-	m_writer = NULL;
-/*
-	m_writer = cvCreateVideoWriter("mywebcam.avi", CV_FOURCC('P','I','M','1'), 25, cvSize(img_width,img_height), 1);
-	if (m_writer == NULL) {
-		cout << "!!! ERROR: cvCreateVideoWriter" << endl;
-	}
-*/
+	return;
 }
 
 /* destructor
  */
 TWebcamGrabber::~TWebcamGrabber () {
-	cvReleaseCapture(&m_capture);
-	cvReleaseVideoWriter(&m_writer);
-	m_cap.release();
+
 }
 
-/* send next frame
+/* get messages/errors from gstreamer
  */
-void TWebcamGrabber::nextFrame() {
-	QTime* mytime = new QTime();
-	mytime->start();
-	IplImage* myimage;
+gboolean on_sink_message (GstBus * bus, GstMessage * message, ProgramData * data) {
+	cout << "TWebcamGrabber: Bus Message ("
+			  << GST_MESSAGE_TYPE_NAME(message)
+			  << ")..." << endl;
 
-	// get next frame from webcam
-	if (m_cap.isOpened()) {
-		cv::Mat frame;
-		m_cap >> frame;
-		// resize image
-		myimage = cvCreateImage(cvSize(frame.cols, frame.rows),
-			IPL_DEPTH_8U, frame.channels()
-		);
-		myimage->imageData = (char*) frame.data;
+	switch (GST_MESSAGE_TYPE (message)) {
+		case GST_MESSAGE_EOS:
+			cout << "TWebcamGrabber: No more frames..." << endl;
+			break;
+		case GST_MESSAGE_ERROR:
+			cout << "TWebcamGrabber: Received error..." << endl;
+			g_main_loop_quit (data->loop);
+			break;
+		default:
+			break;
 	}
 
-	// get next frame from video
-	else if (m_capture != NULL) {
-		myimage = cvQueryFrame(m_capture);
-	}
+	//gst_message_unref(message);
+	return TRUE;
+}
 
-	// get next frame failed
-	else {
-		cout << "TWebcamGrabber: ERROR: NO VIDEO DEVICE!" << endl;
-		return;
-	}
+/* start grabbing
+ */
+void TWebcamGrabber::start () {
+	cout << "TWebcamGrabber: start..." << endl;
 
-	// have image?
-	if (myimage == NULL) {
-		cout << "TWebcamGrabber: No image" << endl;
-		return;
-	}
+	// init
+	data = g_new0 (ProgramData, 1);
+	data->loop = g_main_loop_new (NULL, FALSE);
 
-	// resize image
-	IplImage* smallimage = cvCreateImage(cvSize(m_width, m_height),
-		IPL_DEPTH_8U, 3
+	// set up pipeline
+	stringstream ss("");
+	ss << "video/x-raw-rgb,"
+		<< "height=" << m_height << ",width=" << m_width
+		<< ",framerate=25/1";
+	gchar* video_caps = (gchar*) ss.str().c_str();
+	cout << "TWebcamGrabber: Caps: " << ss.str() << endl;
+	gchar* string = g_strdup_printf(
+		"v4l2src ! ffmpegcolorspace ! videoscale ! %s ! appsink caps=\"%s\" name=testsink"
+		,video_caps, video_caps
 	);
-	cvResize(myimage, smallimage);
+	data->sink = gst_parse_launch (string, NULL);
+	//g_free (string);
 
-	// emit signal on success
-	if (smallimage == NULL) return;
-	emit isNewFrame(smallimage);
+	// pipeline ok?
+	if (data->sink == NULL) {
+		cout << "TWebcamGrabber: Error on setting up pipeline." << endl;
+		return;
+	}
 
-	// write video
-	//if (m_writer != NULL) cvWriteFrame(m_writer, myimage);
+	// add signalhandler for bus messages
+	GstBus* bus = gst_element_get_bus (data->sink);
+	gst_bus_add_watch (bus, (GstBusFunc) on_sink_message, data);
+	gst_object_unref (bus);
 
-	cout << "TWebcamGrabber: Got frame in " << mytime->elapsed() << "ms" << endl;
-	return;
+	// set options
+	GstElement* testsink = gst_bin_get_by_name (GST_BIN (data->sink), "testsink");
+	g_object_set (G_OBJECT (testsink), "emit-signals", FALSE, "sync", TRUE, NULL);
+	gst_object_unref (testsink);
+
+	// play!
+	gst_element_set_state(data->sink, GST_STATE_PLAYING);
+	cout << "TWebcamGrabber: Streaming started." << endl;
+}
+
+/* stop grabbing
+ */
+void TWebcamGrabber::stop()  {
+	cout << "TWebcamGrabber: Stop streaming." << endl;
+
+	// stop pipeline
+	gst_element_set_state (data->sink, GST_STATE_NULL);
+
+	// free
+	gst_object_unref (data->sink);
+	g_main_loop_unref (data->loop);
+	g_free (data);
+}
+
+/* get next frame (slot)
+ */
+void TWebcamGrabber::getNextFrame() {
+	GstElement* testsink = gst_bin_get_by_name (GST_BIN (data->sink), "testsink");
+
+	// pull buffer
+	if (testsink == NULL) return;
+	GstBuffer* buffer = gst_app_sink_pull_buffer(GST_APP_SINK(testsink));
+	if (buffer == NULL) return;
+
+	// get width and height
+	gint width = 0;
+	gint height = 0;
+	GstCaps *gcaps;
+	const GstStructure *gstr;
+
+	// get size of frame
+	g_object_get(G_OBJECT(testsink), "caps", &gcaps, NULL);
+	gst_object_unref(testsink);
+	if (gcaps != NULL) {
+		gstr = gst_caps_get_structure(gcaps, 0);
+
+		gst_structure_get_int(gstr, "width", &width);
+		gst_structure_get_int(gstr, "height", &height);
+	}
+	cout << "TWebcamGrabber: Frame (width: " << width << " height: " << height << ")" << std::endl;
+
+	// get QImage
+	unsigned char* data2 = (unsigned char *) GST_BUFFER_DATA (buffer);
+	QImage* img = new QImage(data2, width, height, width * 3, QImage::Format_RGB888);
+	gst_buffer_unref(buffer);
+
+	// output
+	thisisme->doEmit(img);
+}
+
+/* emit new frame
+ */
+void TWebcamGrabber::doEmit(QImage* myimage) {
+	cout << "TWebcamGrabber: emit..." << endl;
+	if (myimage == NULL) return;
+	emit isNewFrame(myimage);
 }

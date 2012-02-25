@@ -1,5 +1,6 @@
 #include "MyModule.h"
 #include <iostream>
+#include <QTimer>
 
 using namespace std;
 
@@ -36,11 +37,13 @@ void MyModule::startServer (QHostAddress* ip, quint16 port, quint32 mtu, quint16
 	m_udpserver->moveToThread(m_thread2);
 	m_udpserver->startServer();
 
-	// start timer
-	m_udpserver_timer = new QTimer();
-	connect(m_udpserver_timer, SIGNAL(timeout()), m_tw_grabber, SLOT(nextFrame()));
-	connect(m_tw_grabber, SIGNAL(isNewFrame(IplImage*)), m_udpserver, SLOT(sendNext(IplImage*)));
-	m_udpserver_timer->start(40);
+	// start streaming
+	QTimer* mytimer = new QTimer();
+	connect(mytimer, SIGNAL(timeout()), m_tw_grabber, SLOT(getNextFrame()));
+	connect(this, SIGNAL(startStreaming()), m_tw_grabber, SLOT(start()));
+	connect(m_tw_grabber, SIGNAL(isNewFrame(QImage*)), m_udpserver, SLOT(sendNext(QImage*)));
+	emit startStreaming();
+	mytimer->start(40);
 }
 
 /* stop server
