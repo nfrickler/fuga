@@ -39,7 +39,6 @@ MeUser* Supervisor::getMe() {
 	return m_meuser;
 }
 
-
 /* SLOT: show selector
  */
 void Supervisor::slot_showSelector() {
@@ -52,11 +51,9 @@ void Supervisor::showSelector () {
 	cout << "Show selector..." << endl;
 
 	// modules
-/*
-	char* allmodules[1][2];
-	allmodules[0][0] = "Videochat";
-	allmodules[0][1] = "Starte einen Videochat";
-*/
+	//char* allmodules[1][2];
+	//allmodules[0][0] = "Videochat";
+	//allmodules[0][1] = "Starte einen Videochat";
 
 	// init selection
 	QLabel *selector_text = new QLabel(QObject::tr("Was möchtest du machen?"));
@@ -88,6 +85,7 @@ void Supervisor::showSelector () {
 	m_main_window->centralWidget()->setLayout(mainLayout);
 	m_main_window->show();
 	m_main_window->activateWindow();
+
 }
 
 /* start selected module

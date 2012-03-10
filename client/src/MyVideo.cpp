@@ -1,147 +1,228 @@
 #include "MyVideo.h"
 #include <iostream>
-#include <QGraphicsWidget>
 #include <QTime>
 
 using namespace std;
+gboolean on_sink_message_listener (GstBus * bus, GstMessage * message, GstElement * sink);
+gchar* g_str_copy_substr (const gchar *str, guint index, guint count);
+static void pad_added_cb (GstElement * rtpbin, GstPad * new_pad, GstElement* depay);
+
+GstElement* m_rtpamrdepay;
+GstElement* m_rtph263pdepay;
+
 
 /* constructor
  */
 MyVideo::MyVideo(QHostAddress* ip, quint16 port, quint16 width, quint16 height) {
 
 	// init
-	m_image = NULL;
 	m_width = 64;
 	m_height = 48;
-	timelag = 0;
 
-	// start StreamListener
-	m_thread = new QThread();
-	m_thread->start();
-	m_ts_listener = new TStreamListener(ip, port, width, height);
-	m_ts_listener->moveToThread(m_thread);
-	connect(m_ts_listener, SIGNAL(newFrame(QImage*)),
-			this, SLOT(updateWidget(QImage*)));
-	connect(this, SIGNAL(signal_startListening()),
-			m_ts_listener, SLOT(slot_startListening()));
-
-	// start listening
-	emit signal_startListening();
+	// init pipeline
+	init();
 }
 
 /* destructor
  */
 MyVideo::~MyVideo() {
-	m_thread->exit();
-	delete m_ts_listener;
-	delete m_thread;
+	stop();
 }
 
-/* ######################## gl ############################################# */
-
-/* init gl
+/* init pipeline
  */
-/*
-void MyVideo::initializeGL() {
+void MyVideo::init() {
 
-	glClearColor(0.3, 0.4, 0.7, 0.0); //Hintergrundfarbe: Hier ein leichtes Blau
-	//glEnable(GL_DEPTH_TEST);          //Tiefentest aktivieren
-	//glEnable(GL_CULL_FACE);           //Backface Culling aktivieren
+	this->setGeometry(0,0,640,480);
+	this->setAttribute(Qt::WA_NativeWindow,true);
+	this->resize(640,480);
+	this->show();
 
-	glViewport(0,0,this->width(), this->height());
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(-this->width()/2, this->width()/2, this->height()/2, -this->height()/2, -1, 1);
+	/*
+	gst-launch -v gstrtpbin name=rtpbin                                          \
+		udpsrc caps="application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H263-1998" \
+				port=5000 ! rtpbin.recv_rtp_sink_0                                \
+			rtpbin. ! rtph263pdepay ! ffdec_h263 ! xvimagesink                    \
+		 udpsrc port=5001 ! rtpbin.recv_rtcp_sink_0                               \
+		 rtpbin.send_rtcp_src_0 ! udpsink port=5005 sync=false async=false        \
+		udpsrc caps="application/x-rtp,media=(string)audio,clock-rate=(int)8000,encoding-name=(string)AMR,encoding-params=(string)1,octet-align=(string)1" \
+				port=5002 ! rtpbin.recv_rtp_sink_1                                \
+			rtpbin. ! rtpamrdepay ! amrnbdec ! alsasink                           \
+		 udpsrc port=5003 ! rtpbin.recv_rtcp_sink_1                               \
+		 rtpbin.send_rtcp_src_1 ! udpsink port=5007 sync=false async=false
+	*/
 
-}
-*/
+	// pipeline
+	m_pipeline = gst_pipeline_new ("mypipeline");
+	GstElement* gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
+	gst_bin_add_many(GST_BIN (m_pipeline), gstrtpbin, NULL);
 
-/* paint
- */
-void MyVideo::paintGL() {
-	if (m_image == NULL) return;
+	// udp -> video
+	GstElement* udpsrc_v0 = gst_element_factory_make ("udpsrc", "udpsrc_v0");
+	g_object_set (G_OBJECT(udpsrc_v0), "port", 5000, NULL);
+	GstCaps* v_caps = gst_caps_from_string ("application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H263-1998");
+	g_object_set (udpsrc_v0, "caps", v_caps, NULL);
+	gst_caps_unref (v_caps);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDrawPixels(m_image->width(), m_image->height(), GL_RGBA, GL_UNSIGNED_BYTE, m_image->bits());
-}
+	// video rtcp-handling
+	GstElement* udpsrc_v1 = gst_element_factory_make ("udpsrc", "udpsrc_v1");
+	g_object_set (G_OBJECT(udpsrc_v1), "port", 5001, NULL);
+	GstElement* udpsink_v2 = gst_element_factory_make ("udpsink", "udpsink_v2");
+	g_object_set (G_OBJECT(udpsink_v2), "host", "127.0.0.1", "port", 5005, "sync", FALSE, "async", FALSE, NULL);
 
-/* resize
- */
-void MyVideo::resizeGL(int inwidth, int inheight) {
-	m_height = inheight;
-	m_width = inwidth;
+	gst_bin_add_many(GST_BIN (m_pipeline), udpsrc_v0, udpsrc_v1, udpsink_v2, NULL);
 
-	//int pos_v = (this->height() - m_height) / 2;
+	// video link
+	GstPad* srcpad_v = gst_element_get_static_pad (udpsrc_v0, "src");
+	GstPad* sinkpad_v = gst_element_get_request_pad (gstrtpbin, "recv_rtp_sink_0");
+	gboolean lres_v = gst_pad_link (srcpad_v, sinkpad_v);
+	g_assert (lres_v == GST_PAD_LINK_OK);
+	gst_object_unref (srcpad_v);
+	gst_object_unref (sinkpad_v);
+	gst_element_link_pads (udpsrc_v1, "src", gstrtpbin, "recv_rtcp_sink_0");
+	gst_element_link_pads (gstrtpbin, "send_rtcp_src_0", udpsink_v2, "sink");
 
-	glViewport (20, 20, m_width, m_height);
-	glMatrixMode (GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, m_width,0,m_height,-1,1);
-	glMatrixMode (GL_MODELVIEW);
-}
+	// video -> output
+	m_rtph263pdepay = gst_element_factory_make ("rtph263pdepay", NULL);
+	GstElement* ffdec_h263 = gst_element_factory_make ("ffdec_h263", NULL);
+	m_xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
+	gst_bin_add_many(GST_BIN (m_pipeline), m_rtph263pdepay, ffdec_h263, m_xvimagesink, NULL);
+	gst_element_link(m_rtph263pdepay, ffdec_h263);
+	gst_element_link(ffdec_h263, m_xvimagesink);
 
-/* ######################## slots ########################################## */
+	// udp -> audio
+	GstElement* udpsrc_a0 = gst_element_factory_make ("udpsrc", "udpsrc_a0");
+	g_object_set (G_OBJECT(udpsrc_a0), "port", 5002, NULL);
+	GstCaps* a_caps = gst_caps_from_string ("application/x-rtp,media=(string)audio,clock-rate=(int)8000,encoding-name=(string)AMR,encoding-params=(string)1,octet-align=(string)1");
+	g_object_set (udpsrc_a0, "caps", a_caps, NULL);
+	gst_caps_unref (a_caps);
 
-/* slot: receive new image
- */
-void MyVideo::updateWidget(QImage* myimage) {
+	// audio rtcp-handling
+	GstElement* udpsrc_a1 = gst_element_factory_make ("udpsrc", "udpsrc_a1");
+	g_object_set (G_OBJECT(udpsrc_a1), "port", 5003, NULL);
+	GstElement* udpsink_a2 = gst_element_factory_make ("udpsink", "udpsink_a2");
+	g_object_set (G_OBJECT(udpsink_a2), "host", "127.0.0.1", "port", 5007, "sync", FALSE, "async", FALSE, NULL);
 
-	// skip image?
-	if (timelag > 40) {
-		delete myimage;
-		myimage = NULL;
-		timelag-= 20;
-		cout << "MyVideo: xxxxxxxxxxxxxxx skip image xxxxxxxxxxxxx" << endl;
+	gst_bin_add_many(GST_BIN (m_pipeline), udpsrc_a0, udpsrc_a1, udpsink_a2, NULL);
+
+	// audio link
+	GstPad* srcpad_a = gst_element_get_static_pad (udpsrc_a0, "src");
+	GstPad* sinkpad_a = gst_element_get_request_pad (gstrtpbin, "recv_rtp_sink_1");
+	gboolean lres_a = gst_pad_link (srcpad_a, sinkpad_a);
+	g_assert (lres_a == GST_PAD_LINK_OK);
+	gst_object_unref (srcpad_a);
+	gst_object_unref (sinkpad_a);
+	gst_element_link_pads (udpsrc_a1, "src", gstrtpbin, "recv_rtcp_sink_1");
+	gst_element_link_pads (gstrtpbin, "send_rtcp_src_1", udpsink_a2, "sink");
+
+	// audio -> output
+	m_rtpamrdepay = gst_element_factory_make ("rtpamrdepay", NULL);
+	GstElement* amrnbdec = gst_element_factory_make ("amrnbdec", NULL);
+	GstElement* alsasink = gst_element_factory_make ("alsasink", NULL);
+	gst_bin_add_many(GST_BIN (m_pipeline), m_rtpamrdepay, amrnbdec, alsasink, NULL);
+	gst_element_link(m_rtpamrdepay, amrnbdec);
+	gst_element_link(amrnbdec, alsasink);
+
+	// dynamically add rtp-stream
+	g_signal_connect (gstrtpbin, "pad-added", G_CALLBACK (pad_added_cb), NULL);
+
+	// pipeline ok?
+	if (m_pipeline == NULL) {
+		cout << "TStreamListener: Error on setting up pipeline." << endl;
 		return;
 	}
 
-	QTime* mytime = new QTime();
-	mytime->start();
+	// add signalhandler for bus messages
+	GstBus* bus = gst_element_get_bus (m_pipeline);
+	gst_bus_add_watch (bus, (GstBusFunc) on_sink_message_listener, m_pipeline);
+	gst_object_unref (bus);
+}
 
-	// delete old image
-	if (m_image != NULL) {
-		delete m_image;
-		m_image = NULL;
+/* start pipeline
+ */
+void MyVideo::start() {
+
+	// set xoverlay
+	WId xwinid = this->winId();
+	gst_x_overlay_set_window_handle (GST_X_OVERLAY (m_xvimagesink), xwinid);
+
+	// start playing
+	GstStateChangeReturn sret = gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
+	if (sret == GST_STATE_CHANGE_FAILURE) {
+		gst_element_set_state (m_pipeline, GST_STATE_NULL);
+		gst_object_unref (m_pipeline);
+	}
+	cout << "MyVideo: start playing!" << endl;
+}
+
+/* stop pipeline
+ */
+void MyVideo::stop () {
+	gst_element_set_state (m_pipeline, GST_STATE_NULL);
+	g_object_unref(m_xvimagesink);
+	g_object_unref(m_rtpamrdepay);
+	g_object_unref(m_rtph263pdepay);
+	g_object_unref(m_pipeline);
+}
+
+/* get messages/errors from gstreamer
+ */
+gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement* sink) {
+	cout << "MyVideo: Bus Message ("
+			  << GST_MESSAGE_TYPE_NAME(message)
+			  << ")..."
+			  << endl;
+
+	switch (GST_MESSAGE_TYPE (message)) {
+		case GST_MESSAGE_EOS:
+			cout << "TStreamListener: No more frames..." << endl;
+			break;
+		case GST_MESSAGE_ERROR:
+			{
+				GError *err = NULL;
+				gchar *dbg_info = NULL;
+
+				gst_message_parse_error (message, &err, &dbg_info);
+				g_printerr ("MyVideo: ERROR from element %s: %s\n",
+					GST_OBJECT_NAME (message->src), err->message);
+				g_printerr ("Debugging info: %s\n", (dbg_info) ? dbg_info : "none");
+				g_error_free (err);
+				g_free (dbg_info);
+			}
+			break;
+		default:
+			break;
 	}
 
-	// resize image to fit to screen
-	QImage* m_tmp_image = new QImage();
-	*m_tmp_image = (m_width/myimage->width() > m_height/myimage->height())
-		? myimage->scaledToHeight(m_height)
-		: myimage->scaledToWidth(m_width);
-
-	// conver to gl-format
-	m_image = new QImage();
-	*m_image = QGLWidget::convertToGLFormat(m_tmp_image->mirrored(true, false));
-	delete myimage;
-	delete m_tmp_image;
-	m_tmp_image = NULL;
-	myimage = NULL;
-
-	updateGL();
-
-	timelag+= mytime->elapsed() - 30;
-	if (timelag < 0) timelag = 0;
-	cout << "MyVideo: Image drawn in " << mytime->elapsed() << "|" << timelag << "ms" << endl;
+	return TRUE;
 }
 
-void MyVideo::doResize(int width, int height) {
-	this->resizeGL(width, height);
+/* add rtp-streams dynamically
+  */
+static void pad_added_cb (GstElement * rtpbin, GstPad * new_pad, GstElement* depay) {
+  g_print ("New rtp-pad: %s\n", GST_PAD_NAME (new_pad));
+  gchar* myname = g_str_copy_substr(GST_PAD_NAME (new_pad), 0, 14);
+
+  // get pad to connect to
+  depay = (g_strcasecmp(myname, "recv_rtp_src_1") == 0) ? m_rtpamrdepay : m_rtph263pdepay ;
+  GstPad* sinkpad = gst_element_get_static_pad (depay, "sink");
+  g_assert (sinkpad);
+
+  GstPadLinkReturn lres = gst_pad_link (new_pad, sinkpad);
+  g_assert (lres == GST_PAD_LINK_OK);
+  gst_object_unref (sinkpad);
 }
 
+/* substr
+  */
+gchar* g_str_copy_substr (const gchar *str, guint index, guint count) {
+	gchar *result;
+	guint i;
 
-// ###################### TestGraphicsView ##########################
+	if (str == NULL || index < 0 || count <= 0) return NULL;
 
-TestGraphicsView::TestGraphicsView()
-	: QGraphicsView()
-{
-}
-
-void TestGraphicsView::resizeEvent(QResizeEvent *event) {
-	emit is_resized(event->size().width(), event->size().height());
-}
-
-void TestGraphicsView::setupViewport(QWidget *viewport) {
-	QGLWidget *glWidget = dynamic_cast<QGLWidget*>(viewport);
-	if (glWidget) glWidget->updateGL();
+	result = g_new0 (gchar, count + 1);
+	for (i = 0; i < count; i++)
+		result[i] = str[index + i];
+	return result;
 }

@@ -4,7 +4,7 @@
 #include <string>
 
 using namespace std;
-gboolean on_sink_message (GstBus * bus, GstMessage * message, ProgramData * data);
+gboolean on_sink_message (GstBus * bus, GstMessage * message);
 TWebcamGrabber* thisisme;
 
 /* constructor
@@ -20,9 +20,6 @@ TWebcamGrabber::TWebcamGrabber (quint16 img_width, quint16 img_height,
 	m_isvideostreaming = is_videostreaming;
 	thisisme = this;
 
-	// wait 2 seconds for initialisation
-	sleep(2);
-
 	return;
 }
 
@@ -34,7 +31,7 @@ TWebcamGrabber::~TWebcamGrabber () {
 
 /* get messages/errors from gstreamer
  */
-gboolean on_sink_message (GstBus * bus, GstMessage * message, ProgramData * data) {
+gboolean on_sink_message (GstBus * bus, GstMessage * message) {
 	cout << "TWebcamGrabber: Bus Message ("
 			  << GST_MESSAGE_TYPE_NAME(message)
 			  << ")..." << endl;
@@ -45,13 +42,11 @@ gboolean on_sink_message (GstBus * bus, GstMessage * message, ProgramData * data
 			break;
 		case GST_MESSAGE_ERROR:
 			cout << "TWebcamGrabber: Received error..." << endl;
-			g_main_loop_quit (data->loop);
 			break;
 		default:
 			break;
 	}
 
-	//gst_message_unref(message);
 	return TRUE;
 }
 
@@ -60,43 +55,85 @@ gboolean on_sink_message (GstBus * bus, GstMessage * message, ProgramData * data
 void TWebcamGrabber::start () {
 	cout << "TWebcamGrabber: start..." << endl;
 
-	// init
-	data = g_new0 (ProgramData, 1);
-	data->loop = g_main_loop_new (NULL, FALSE);
+	/*
+	gst-launch gstrtpbin name=rtpbin \
+			v4l2src ! ffmpegcolorspace ! ffenc_h263 ! rtph263ppay ! rtpbin.send_rtp_sink_0 \
+					  rtpbin.send_rtp_src_0 ! udpsink port=5000                            \
+					  rtpbin.send_rtcp_src_0 ! udpsink port=5001 sync=false async=false    \
+					  udpsrc port=5005 ! rtpbin.recv_rtcp_sink_0                           \
+			audiotestsrc ! amrnbenc ! rtpamrpay ! rtpbin.send_rtp_sink_1                   \
+					  rtpbin.send_rtp_src_1 ! udpsink port=5002                            \
+					  rtpbin.send_rtcp_src_1 ! udpsink port=5003 sync=false async=false    \
+					  udpsrc port=5007 ! rtpbin.recv_rtcp_sink_1
+	*/
 
-	// set up pipeline
-	stringstream ss("");
-	ss << "video/x-raw-rgb,"
-		<< "height=" << m_height << ",width=" << m_width
-		<< ",framerate=25/1";
-	gchar* video_caps = (gchar*) ss.str().c_str();
-	cout << "TWebcamGrabber: Caps: " << ss.str() << endl;
-	gchar* string = g_strdup_printf(
-		"v4l2src ! ffmpegcolorspace ! videoscale ! %s ! appsink caps=\"%s\" name=testsink"
-		,video_caps, video_caps
-	);
-	data->sink = gst_parse_launch (string, NULL);
-	//g_free (string);
+	// pipeline
+	m_pipeline = gst_pipeline_new ("mypipeline");
+	GstElement* gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
+	gst_bin_add_many(GST_BIN (m_pipeline), gstrtpbin, NULL);
+
+	// video
+	GstElement* v4l2src = gst_element_factory_make ("v4l2src", NULL);
+	GstElement* ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
+	GstElement* ffenc_h263 = gst_element_factory_make ("ffenc_h263", NULL);
+	GstElement* rtph263ppay = gst_element_factory_make ("rtph263ppay", NULL);
+	gst_bin_add_many(GST_BIN (m_pipeline), v4l2src, ffmpegcolorspace, ffenc_h263, rtph263ppay, NULL);
+	gst_element_link(v4l2src, ffmpegcolorspace);
+	gst_element_link(ffmpegcolorspace, ffenc_h263);
+	gst_element_link(ffenc_h263, rtph263ppay);
+	gst_element_link_pads (rtph263ppay, "src", gstrtpbin, "send_rtp_sink_0");
+
+	// video -> udp
+	GstElement* udpsink_v0 = gst_element_factory_make ("udpsink", NULL);
+	g_object_set (G_OBJECT(udpsink_v0), "host", "127.0.0.1", "port", 5000, NULL);
+	GstElement* udpsink_v1 = gst_element_factory_make ("udpsink", NULL);
+	g_object_set (G_OBJECT(udpsink_v1), "host", "127.0.0.1", "port", 5001, "sync", FALSE, "async", FALSE, NULL);
+	GstElement* udpsrc_v2 = gst_element_factory_make ("udpsrc", NULL);
+	g_object_set (G_OBJECT(udpsrc_v2), "port", 5005, NULL);
+
+	gst_bin_add_many(GST_BIN (m_pipeline), udpsink_v0, udpsink_v1, udpsrc_v2, NULL);
+
+	gst_element_link_pads (gstrtpbin, "send_rtp_src_0", udpsink_v0, "sink");
+	gst_element_link_pads (gstrtpbin, "send_rtcp_src_0", udpsink_v1, "sink");
+	gst_element_link_pads (udpsrc_v2, "src", gstrtpbin, "recv_rtcp_sink_0");
+
+	// audio
+	GstElement* audiotestsrc = gst_element_factory_make ("audiotestsrc", NULL);
+	GstElement* amrnbenc = gst_element_factory_make ("amrnbenc", NULL);
+	GstElement* rtpamrpay = gst_element_factory_make ("rtpamrpay", NULL);
+	gst_bin_add_many(GST_BIN (m_pipeline), audiotestsrc, amrnbenc, rtpamrpay, NULL);
+	gst_element_link(audiotestsrc, amrnbenc);
+	gst_element_link(amrnbenc, rtpamrpay);
+	gst_element_link_pads (rtpamrpay, "src", gstrtpbin, "send_rtp_sink_1");
+
+	// audio -> udp
+	GstElement* udpsink_a0 = gst_element_factory_make ("udpsink", NULL);
+	g_object_set (G_OBJECT(udpsink_a0), "host", "127.0.0.1", "port", 5002, NULL);
+	GstElement* udpsink_a1 = gst_element_factory_make ("udpsink", NULL);
+	g_object_set (G_OBJECT(udpsink_a1), "host", "127.0.0.1", "port", 5003, "sync", FALSE, "async", FALSE, NULL);
+	GstElement* udpsrc_a2 = gst_element_factory_make ("udpsrc", NULL);
+	g_object_set (G_OBJECT(udpsrc_a2), "port", 5007, NULL);
+
+	gst_bin_add_many(GST_BIN (m_pipeline), udpsink_a0, udpsink_a1, udpsrc_a2, NULL);
+
+	gst_element_link_pads (gstrtpbin, "send_rtp_src_1", udpsink_a0, "sink");
+	gst_element_link_pads (gstrtpbin, "send_rtcp_src_1", udpsink_a1, "sink");
+	gst_element_link_pads (udpsrc_a2, "src", gstrtpbin, "recv_rtcp_sink_1");
 
 	// pipeline ok?
-	if (data->sink == NULL) {
+	if (m_pipeline == NULL) {
 		cout << "TWebcamGrabber: Error on setting up pipeline." << endl;
 		return;
 	}
+	cout << "TWebcamGrabber: pipeline created" << endl;
 
 	// add signalhandler for bus messages
-	GstBus* bus = gst_element_get_bus (data->sink);
-	gst_bus_add_watch (bus, (GstBusFunc) on_sink_message, data);
+	GstBus* bus = gst_element_get_bus (m_pipeline);
+	gst_bus_add_watch (bus, (GstBusFunc) on_sink_message, NULL);
 	gst_object_unref (bus);
 
-	// set options
-	GstElement* testsink = gst_bin_get_by_name (GST_BIN (data->sink), "testsink");
-	g_object_set (G_OBJECT (testsink), "emit-signals", FALSE, "sync", TRUE, NULL);
-	gst_object_unref (testsink);
-
 	// play!
-	gst_element_set_state(data->sink, GST_STATE_PLAYING);
-	cout << "TWebcamGrabber: Streaming started." << endl;
+	gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
 }
 
 /* stop grabbing
@@ -105,54 +142,8 @@ void TWebcamGrabber::stop()  {
 	cout << "TWebcamGrabber: Stop streaming." << endl;
 
 	// stop pipeline
-	gst_element_set_state (data->sink, GST_STATE_NULL);
+	gst_element_set_state (m_pipeline, GST_STATE_NULL);
 
 	// free
-	gst_object_unref (data->sink);
-	g_main_loop_unref (data->loop);
-	g_free (data);
-}
-
-/* get next frame (slot)
- */
-void TWebcamGrabber::getNextFrame() {
-	GstElement* testsink = gst_bin_get_by_name (GST_BIN (data->sink), "testsink");
-
-	// pull buffer
-	if (testsink == NULL) return;
-	GstBuffer* buffer = gst_app_sink_pull_buffer(GST_APP_SINK(testsink));
-	if (buffer == NULL) return;
-
-	// get width and height
-	gint width = 0;
-	gint height = 0;
-	GstCaps *gcaps;
-	const GstStructure *gstr;
-
-	// get size of frame
-	g_object_get(G_OBJECT(testsink), "caps", &gcaps, NULL);
-	gst_object_unref(testsink);
-	if (gcaps != NULL) {
-		gstr = gst_caps_get_structure(gcaps, 0);
-
-		gst_structure_get_int(gstr, "width", &width);
-		gst_structure_get_int(gstr, "height", &height);
-	}
-	cout << "TWebcamGrabber: Frame (width: " << width << " height: " << height << ")" << std::endl;
-
-	// get QImage
-	unsigned char* data2 = (unsigned char *) GST_BUFFER_DATA (buffer);
-	QImage* img = new QImage(data2, width, height, width * 3, QImage::Format_RGB888);
-	gst_buffer_unref(buffer);
-
-	// output
-	thisisme->doEmit(img);
-}
-
-/* emit new frame
- */
-void TWebcamGrabber::doEmit(QImage* myimage) {
-	cout << "TWebcamGrabber: emit..." << endl;
-	if (myimage == NULL) return;
-	emit isNewFrame(myimage);
+	gst_object_unref (m_pipeline);
 }

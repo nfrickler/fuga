@@ -16,7 +16,6 @@ HEADERS = src/MyWindow.h \
 	src/Supervisor.h \
 	src/ModVideochat.h \
 	src/TWebcamGrabber.h \
-	src/TStreamListener.h \
 	src/MyTcpsocket.h \
 	src/ContactHandler.h \
     src/MyConfig.h \
@@ -31,7 +30,6 @@ SOURCES = src/main.cpp \
 	src/Supervisor.cpp \
 	src/ModVideochat.cpp \
 	src/TWebcamGrabber.cpp \
-	src/TStreamListener.cpp \
 	src/MyTcpsocket.cpp \
 	src/ContactHandler.cpp \
     src/MyConfig.cpp \
@@ -55,4 +53,5 @@ LIBS += -pthread \
 	-lrt \
 	-lxml2 \
 	-lglib-2.0 \
-	-lgstapp-0.10
+	-lgstapp-0.10 \
+	-lgstinterfaces-0.10

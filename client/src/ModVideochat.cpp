@@ -112,7 +112,7 @@ void ModVideochat::showVideo () {
 	// chat
 	vector<string> partner;
 	partner.push_back(m_name);
-	m_chatbox = new Chatbox(m_supervisor, m_supervisor->getMe()->getName(), partner);
+	//m_chatbox = new Chatbox(m_supervisor, m_supervisor->getMe()->getName(), partner);
 
 	// misc
 	stringstream webcam_label("");
@@ -120,20 +120,23 @@ void ModVideochat::showVideo () {
 
 	// start video
 	m_mywebcam = m_supervisor->getContactHandler()->startVideo(m_name);
-	TestGraphicsView *myownwebcam1 = new TestGraphicsView();
-	myownwebcam1->setViewport(m_mywebcam);
-	connect(myownwebcam1, SIGNAL(is_resized(int,int)), m_mywebcam, SLOT(doResize(int,int)));
+	//connect(myownwebcam1, SIGNAL(is_resized(int,int)), m_mywebcam, SLOT(doResize(int,int)));
 
 	// set layout
 	QLabel* mylabel = new QLabel(tr(webcam_label.str().c_str()));
 	mylabel->setMaximumHeight(30);
-	QGridLayout* mainLayout = new QGridLayout();
-	mainLayout->addWidget(mylabel, 0, 0, 1, 2);
-	mainLayout->addWidget(myownwebcam1, 1, 0);
-	mainLayout->addWidget(m_chatbox, 1, 1);
+	QHBoxLayout* mainLayout = new QHBoxLayout();
 
+	mainLayout->addWidget(m_mywebcam);
+	mainLayout->addWidget(mylabel);
+	//mainLayout->addWidget(m_chatbox);
+
+	// show window
 	central_widget->setLayout(mainLayout);
 	m_main_window->show();
+
+	// start listening
+	m_mywebcam->start();
 }
 
 /* handle errors

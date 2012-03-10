@@ -8,11 +8,6 @@
 #include <gst/app/gstappsink.h>
 #include <gst/app/gstappbuffer.h>
 
-struct ProgramData {
-	GMainLoop *loop;
-	GstElement *sink;
-};
-
 class TWebcamGrabber : public QObject {
 	Q_OBJECT
 
@@ -27,14 +22,11 @@ class TWebcamGrabber : public QObject {
 		quint16 m_height;
 		std::string m_videopath;
 		bool m_isvideostreaming;
-		ProgramData* data;
 
-	signals:
-		void isNewFrame(QImage* myimage);
+		GstElement* m_pipeline;
 
 	public slots:
 		void start();
-		void getNextFrame();
 		void stop();
 };
 

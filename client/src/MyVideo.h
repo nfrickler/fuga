@@ -1,61 +1,32 @@
 #ifndef __MYVIDEO_H__
 #define __MYVIDEO_H__
 
-#include "TStreamListener.h"
-#include <QImage>
-#include <QThread>
-#include <qgl.h>
-#include <QGraphicsView>
+#include <QWidget>
+#include <QHostAddress>
 
-class TStreamListener;
+#include <glib.h>
+#include <gst/gst.h>
+#include <gst/interfaces/xoverlay.h>
 
-class MyVideo : public QGLWidget {
+class MyVideo : public QWidget {
 	Q_OBJECT
 
 	public:
 		MyVideo(QHostAddress* ip, quint16 port, quint16 width, quint16 height);
 		~MyVideo();
+		void start();
+		void stop();
 
 	protected:
 
-		// listening
-		QThread* m_thread;
-		TStreamListener* m_ts_listener;
-
-		// gl
-	//	void initializeGL();
-		virtual void paintGL();
-		virtual void resizeGL(int width, int height);
+		void init();
+		GstElement* m_pipeline;
+		GstElement* m_xvimagesink;
 
 		// sizes
 		int m_width;
 		int m_height;
 
-		// current
-		QImage * m_image;
-		int timelag;
-
-	signals:
-		void signal_startListening();
-
-	public slots:
-		void updateWidget(QImage* myimage);
-		void doResize(int width, int height);
-
-};
-
-class TestGraphicsView : public QGraphicsView {
-	Q_OBJECT
-
-	public:
-		TestGraphicsView();
-
-	protected:
-		virtual void setupViewport(QWidget *viewport);
-		void resizeEvent ( QResizeEvent * event );
-
-	signals:
-		void is_resized(int width, int height);
 };
 
 #endif // __MYVIDEO_H__
