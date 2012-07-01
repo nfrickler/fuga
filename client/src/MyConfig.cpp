@@ -95,6 +95,7 @@ void MyConfig::_readConfig() {
 	if (m_config.find("img_height") == m_config.end()) m_config["img_height"] = "240";
 	if (m_config.find("root_ip") == m_config.end()) m_config["root_ip"] = "127.0.0.1";
 	if (m_config.find("root_port") == m_config.end()) m_config["root_port"] = "7777";
+    if (m_config.find("video_path") == m_config.end()) m_config["video_path"] = "test.avi";
 }
 
 /* write settings to file

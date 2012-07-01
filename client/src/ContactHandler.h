@@ -1,8 +1,9 @@
 #ifndef __CONTACTHANDLER_H__
 #define __CONTACTHANDLER_H__
 
-#include "MyVideo.h"
 #include "Supervisor.h"
+#include "FuGaStreamer.h"
+#include "FuGaVideo.h"
 #include <QMutex>
 #include <map>
 #include <QTcpSocket>
@@ -19,14 +20,15 @@ struct contact {
 	quint16			udp_port;
 	quint16			img_width;
 	quint16			img_height;
-	MyVideo*		video;
-	bool			video_started;
 
 	QTcpSocket*		tcp_socket;
 	quint16			tcp_port;
 	QHostAddress*	tcp_ip;
 	std::string		tcp_buffer;
 	std::string		tcp_buffer_send;
+
+	FuGaStreamer* streamer;
+	FuGaVideo* video;
 };
 
 class ContactHandler : public QObject {
@@ -42,6 +44,7 @@ class ContactHandler : public QObject {
 		bool isTcpContact(std::string name, bool socketOnly = false);
 		bool changeName(std::string name, std::string newname);
 		bool isName(std::string name);
+		bool hasData(std::string name);
 
 		// setter
 		void setUdpIp(std::string name, QHostAddress* ip);
@@ -64,10 +67,11 @@ class ContactHandler : public QObject {
 		QTcpSocket* getTcpSocket(std::string name);
 		std::string getTcpBufferSend(std::string name);
 
-		// video handling
-		MyVideo* startVideo(std::string name);
-		void stopVideo(std::string name);
-		bool isVideo(std::string name);
+		// streamer and video handling
+		FuGaStreamer* getStreamer(std::string name);
+		void rmStreamer(std::string name);
+		FuGaVideo* getVideo(std::string name);
+		void rmVideo(std::string name);
 
 	protected:
 		Supervisor* m_supervisor;
@@ -75,8 +79,9 @@ class ContactHandler : public QObject {
 		QMutex* m_mutex;
 
 	signals:
-		void videoReady(std::string name);
-		void haveTcpContact(std::string name);
+		void s_isStreaming(std::string name);
+		void s_isData(std::string name);
+		void s_isContact(std::string name);
 };
 
 #endif // __CONTACTHANDLER_H__

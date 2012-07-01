@@ -157,7 +157,7 @@ void MyTcpsocket::getAnswer(QString inname) {
 		vector<string> parts = split(*i, "-");
 		if (parts.size() != 2) {
 			// invalid message!
-			cout << "MyTcpsocket: Invalid message received!" << endl;
+            cout << "MyTcpsocket: Invalid message received! (" << parts.size() << ")" << endl;
 			continue;
 		}
 		string type = parts[0];

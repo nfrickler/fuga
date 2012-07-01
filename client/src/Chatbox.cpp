@@ -36,7 +36,6 @@ Chatbox::Chatbox (Supervisor* mysupervisor, string myname, vector<string> mypart
 
 	this->setWindowOpacity(0.7);
 	this->setLayout(my_layout);
-	this->show();
 }
 
 // ##################### slots ###################### #

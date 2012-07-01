@@ -1,6 +1,6 @@
-#include "MyVideo.h"
+#include "FuGaVideo.h"
+#include <QSize>
 #include <iostream>
-#include <QTime>
 
 using namespace std;
 gboolean on_sink_message_listener (GstBus * bus, GstMessage * message, GstElement * sink);
@@ -13,44 +13,45 @@ GstElement* m_rtph263pdepay;
 
 /* constructor
  */
-MyVideo::MyVideo(QHostAddress* ip, quint16 port, quint16 width, quint16 height) {
+FuGaVideo::FuGaVideo(QHostAddress* in_address, quint16 in_port) {
 
 	// init
-	m_width = 64;
-	m_height = 48;
+	m_address = in_address;
+	m_port = in_port;
 
 	// init pipeline
+	this->setAttribute(Qt::WA_NativeWindow,true);
 	init();
 }
 
 /* destructor
  */
-MyVideo::~MyVideo() {
+FuGaVideo::~FuGaVideo() {
 	stop();
 }
 
-/* init pipeline
+void FuGaVideo::resizeEvent(QResizeEvent *e) {
+	cout << "Do resize!" << endl;
+	QSize size(4,3);
+	size.scale(e->size().width(),e->size().height(),Qt::KeepAspectRatio);
+	if (size != this->size()) resize(size);
+}
+
+/* setting up the following pipeline:
+
+ gst-launch -v gstrtpbin name=rtpbin                                          \
+	 udpsrc caps="application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H263-1998" \
+			 port=5000 ! rtpbin.recv_rtp_sink_0                                \
+		 rtpbin. ! rtph263pdepay ! ffdec_h263 ! xvimagesink                    \
+	  udpsrc port=5001 ! rtpbin.recv_rtcp_sink_0                               \
+	  rtpbin.send_rtcp_src_0 ! udpsink port=5005 sync=false async=false        \
+	 udpsrc caps="application/x-rtp,media=(string)audio,clock-rate=(int)8000,encoding-name=(string)AMR,encoding-params=(string)1,octet-align=(string)1" \
+			 port=5002 ! rtpbin.recv_rtp_sink_1                                \
+		 rtpbin. ! rtpamrdepay ! amrnbdec ! alsasink                           \
+	  udpsrc port=5003 ! rtpbin.recv_rtcp_sink_1                               \
+	  rtpbin.send_rtcp_src_1 ! udpsink port=5007 sync=false async=false
  */
-void MyVideo::init() {
-
-	this->setGeometry(0,0,640,480);
-	this->setAttribute(Qt::WA_NativeWindow,true);
-	this->resize(640,480);
-	this->show();
-
-	/*
-	gst-launch -v gstrtpbin name=rtpbin                                          \
-		udpsrc caps="application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H263-1998" \
-				port=5000 ! rtpbin.recv_rtp_sink_0                                \
-			rtpbin. ! rtph263pdepay ! ffdec_h263 ! xvimagesink                    \
-		 udpsrc port=5001 ! rtpbin.recv_rtcp_sink_0                               \
-		 rtpbin.send_rtcp_src_0 ! udpsink port=5005 sync=false async=false        \
-		udpsrc caps="application/x-rtp,media=(string)audio,clock-rate=(int)8000,encoding-name=(string)AMR,encoding-params=(string)1,octet-align=(string)1" \
-				port=5002 ! rtpbin.recv_rtp_sink_1                                \
-			rtpbin. ! rtpamrdepay ! amrnbdec ! alsasink                           \
-		 udpsrc port=5003 ! rtpbin.recv_rtcp_sink_1                               \
-		 rtpbin.send_rtcp_src_1 ! udpsink port=5007 sync=false async=false
-	*/
+void FuGaVideo::init() {
 
 	// pipeline
 	m_pipeline = gst_pipeline_new ("mypipeline");
@@ -140,7 +141,7 @@ void MyVideo::init() {
 
 /* start pipeline
  */
-void MyVideo::start() {
+void FuGaVideo::start() {
 
 	// set xoverlay
 	WId xwinid = this->winId();
@@ -152,12 +153,12 @@ void MyVideo::start() {
 		gst_element_set_state (m_pipeline, GST_STATE_NULL);
 		gst_object_unref (m_pipeline);
 	}
-	cout << "MyVideo: start playing!" << endl;
+	cout << "FuGaVideo: start playing!" << endl;
 }
 
 /* stop pipeline
  */
-void MyVideo::stop () {
+void FuGaVideo::stop () {
 	gst_element_set_state (m_pipeline, GST_STATE_NULL);
 	g_object_unref(m_xvimagesink);
 	g_object_unref(m_rtpamrdepay);
@@ -168,7 +169,7 @@ void MyVideo::stop () {
 /* get messages/errors from gstreamer
  */
 gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement* sink) {
-	cout << "MyVideo: Bus Message ("
+	cout << "FuGaVideo: Bus Message ("
 			  << GST_MESSAGE_TYPE_NAME(message)
 			  << ")..."
 			  << endl;
@@ -183,7 +184,7 @@ gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement*
 				gchar *dbg_info = NULL;
 
 				gst_message_parse_error (message, &err, &dbg_info);
-				g_printerr ("MyVideo: ERROR from element %s: %s\n",
+				g_printerr ("FuGaVideo: ERROR from element %s: %s\n",
 					GST_OBJECT_NAME (message->src), err->message);
 				g_printerr ("Debugging info: %s\n", (dbg_info) ? dbg_info : "none");
 				g_error_free (err);
@@ -219,7 +220,7 @@ gchar* g_str_copy_substr (const gchar *str, guint index, guint count) {
 	gchar *result;
 	guint i;
 
-	if (str == NULL || index < 0 || count <= 0) return NULL;
+	if (str == NULL || count <= 0) return NULL;
 
 	result = g_new0 (gchar, count + 1);
 	for (i = 0; i < count; i++)

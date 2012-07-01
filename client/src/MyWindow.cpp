@@ -12,6 +12,7 @@ MyWindow::MyWindow(Supervisor* mysupervisor) {
 	m_supervisor = mysupervisor;
 
 	// settings
+	this->setAttribute(Qt::WA_NativeWindow,true);
 	setWindowTitle("Hello World!");
 	resize(1000, 600);
 

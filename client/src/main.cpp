@@ -1,15 +1,13 @@
 #include "Supervisor.h"
-#include <QtGui/QApplication>
-#include <iostream>
-#include <X11/Xlib.h>
+#include <QApplication>
 #include <QFont>
+#include <iostream>
 
 #include <gst/gst.h>
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
-	//XInitThreads();
 
 	cout << endl;
 	cout << " ############ FuGa ##################" << endl;
@@ -24,7 +22,7 @@ int main(int argc, char *argv[]) {
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	gst_init (&argc, &argv);
 
-	// print version
+	// print version of gstreamer
 	gst_version (&major, &minor, &micro, &nano);
 	if (nano == 1)		nano_str = "(CVS)";
 	else if (nano == 2) nano_str = "(Prerelease)";
@@ -36,14 +34,13 @@ int main(int argc, char *argv[]) {
 	QApplication app(argc, argv);
 	app.setFont(QFont("Arial"));
 
-	// create main object
+	// create Supervisor object
 	new Supervisor();
 
 	// run application
-	int appreturn = app.exec();
+	app.exec();
 
 	// finish qt-application
-
 	cout << endl;
 	cout << " # You have quitted FuGa...         #" << endl;
 	cout << endl;

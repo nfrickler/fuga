@@ -1,7 +1,7 @@
 #include "ModVideochat.h"
 #include <QtGui>
-#include <iostream>
 #include <QMessageBox>
+#include <iostream>
 #include <sstream>
 
 using namespace std;
@@ -13,7 +13,6 @@ ModVideochat::ModVideochat(MyWindow* mywindow, Supervisor* mysupervisor) {
 	// save input in obj-vars
 	m_main_window = mywindow;
 	m_supervisor = mysupervisor;
-	m_udpserver = NULL;
 
 	// ask for name
 	askForPerson();
@@ -68,7 +67,7 @@ void ModVideochat::setConnectionData () {
 
 	// wait for videoReady
 	m_islistening = false;
-	connect(m_supervisor->getContactHandler(), SIGNAL(videoReady(std::string)), this, SLOT(slot_showVideo(std::string)));
+	connect(m_supervisor->getContactHandler(), SIGNAL(s_isData(std::string)), this, SLOT(slot_showVideo(std::string)));
 	m_timer = new QTimer();
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(slot_videoFailed()));
 	m_timer->start(10000);
@@ -98,45 +97,43 @@ void ModVideochat::showVideo () {
 	QWidget *central_widget = new QWidget();
 	m_main_window->setCentralWidget(central_widget);
 
-	// start server-thread for own webcam
-	startServer(new QHostAddress(m_supervisor->getConfig()->getConfig("udp_ip").c_str()),
-				m_supervisor->getConfig()->getInt("udp_port"),
-				m_supervisor->getConfig()->getInt("udp_mtu"),
-				m_supervisor->getConfig()->getInt("udp_quality"),
-				m_supervisor->getConfig()->getInt("img_width"),
-				m_supervisor->getConfig()->getInt("img_height"),
-				m_supervisor->getConfig()->getConfig("video_path"),
-				m_supervisor->getConfig()->getBool("video_isstreaming")
-	);
+	// start streaming
+	FuGaStreamer* mystreamer = m_supervisor->getContactHandler()->getStreamer(m_name);
+	mystreamer->start();
 
-	// chat
-	vector<string> partner;
-	partner.push_back(m_name);
-	//m_chatbox = new Chatbox(m_supervisor, m_supervisor->getMe()->getName(), partner);
-
-	// misc
+	// create label for video
 	stringstream webcam_label("");
 	webcam_label << "Webcam von " << m_name;
-
-	// start video
-	m_mywebcam = m_supervisor->getContactHandler()->startVideo(m_name);
-	//connect(myownwebcam1, SIGNAL(is_resized(int,int)), m_mywebcam, SLOT(doResize(int,int)));
-
-	// set layout
 	QLabel* mylabel = new QLabel(tr(webcam_label.str().c_str()));
-	mylabel->setMaximumHeight(30);
-	QHBoxLayout* mainLayout = new QHBoxLayout();
+	mylabel->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum));
 
-	mainLayout->addWidget(m_mywebcam);
-	mainLayout->addWidget(mylabel);
-	//mainLayout->addWidget(m_chatbox);
+	// create myvideo
+	FuGaVideo* othercam = m_supervisor->getContactHandler()->getVideo(m_name);
+	if (othercam == NULL) {
+		newError("Could not start Video!");
+		m_supervisor->showSelector();
+		return;
+	}
+	othercam->setStyleSheet("background:#000;");
+	othercam->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding));
 
-	// show window
-	central_widget->setLayout(mainLayout);
-	m_main_window->show();
+	// create chat
+	vector<string> partner;
+	partner.push_back(m_name);
+	m_chatbox = new Chatbox(m_supervisor, m_supervisor->getMe()->getName(), partner);
+	m_chatbox->setStyleSheet("background:#222;");
+
+	// merge in layout
+	QGridLayout* layout_grid = new QGridLayout();
+	layout_grid->addWidget(mylabel, 1, 0);
+	layout_grid->addWidget(othercam, 0, 0);
+	layout_grid->addWidget(m_chatbox, 0, 2, 1, 2);
+	central_widget->setLayout(layout_grid);
+	central_widget->setStyleSheet("color:#FFF;background:#000;");
 
 	// start listening
-	m_mywebcam->start();
+	m_main_window->show();
+	othercam->start();
 }
 
 /* handle errors

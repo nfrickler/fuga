@@ -12,32 +12,30 @@ OBJECTS_DIR = build
 MOC_DIR = build
 UI_DIR = build
 HEADERS = src/MyWindow.h \
-	 src/MyVideo.h \
 	src/Supervisor.h \
 	src/ModVideochat.h \
-	src/TWebcamGrabber.h \
 	src/MyTcpsocket.h \
 	src/ContactHandler.h \
     src/MyConfig.h \
-    src/MyUdpServer.h \
-    src/MyModule.h \
     src/MyUser.h \
     src/MeUser.h \
-    src/Chatbox.h
+    src/Chatbox.h \
+    src/FuGaModule.h \
+    src/FuGaStreamer.h \
+    src/FuGaVideo.h
 SOURCES = src/main.cpp \
 	src/MyWindow.cpp \
-	src/MyVideo.cpp \
 	src/Supervisor.cpp \
 	src/ModVideochat.cpp \
-	src/TWebcamGrabber.cpp \
 	src/MyTcpsocket.cpp \
 	src/ContactHandler.cpp \
     src/MyConfig.cpp \
-    src/MyUdpServer.cpp \
-    src/MyModule.cpp \
     src/MyUser.cpp \
     src/MeUser.cpp \
-    src/Chatbox.cpp
+    src/Chatbox.cpp \
+    src/FuGaModule.cpp \
+    src/FuGaStreamer.cpp \
+    src/FuGaVideo.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig

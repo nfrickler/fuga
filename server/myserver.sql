@@ -27,14 +27,15 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE IF NOT EXISTS `users` (
-  `ID` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(20) NOT NULL,
-  `pwd` varchar(40) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `password` varchar(40) NOT NULL,
   `tcp_ip` varchar(100) NOT NULL,
   `tcp_port` int(11) NOT NULL,
-  `lastOn` datetime NOT NULL,
-  PRIMARY KEY (`ID`),
-  UNIQUE KEY `name` (`name`)
+  `dateOfRegistration` datetime NOT NULL,
+  `dateOfLogin` datetime NOT NULL,
+  `dateOfLast` datetime NOT NULL,
+  `logged` int(1) NOT NULL,
+  PRIMARY KEY (`name`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=19 ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

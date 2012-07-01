@@ -1,9 +1,9 @@
 #ifndef __MODVIDEOCHAT_H__
 #define __MODVIDEOCHAT_H__
 
-#include "MyModule.h"
+#include "FuGaModule.h"
 #include "MyWindow.h"
-#include "MyVideo.h"
+#include "FuGaVideo.h"
 #include "Chatbox.h"
 #include "Supervisor.h"
 #include <QLineEdit>
@@ -12,11 +12,11 @@
 
 class MyWindow;
 class Supervisor;
-class MyVideo;
-class MyModule;
+class FuGaVideo;
+class FuGaModule;
 class Chatbox;
 
-class ModVideochat : public MyModule {
+class ModVideochat : public FuGaModule {
 	Q_OBJECT
 
 	public:
@@ -25,7 +25,6 @@ class ModVideochat : public MyModule {
 	protected:
 		MyWindow* m_main_window;
 		Supervisor* m_supervisor;
-		MyVideo* m_mywebcam;
 		QTimer* m_timer;
 
 		void askForPerson();

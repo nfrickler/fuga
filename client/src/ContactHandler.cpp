@@ -16,7 +16,7 @@ ContactHandler::ContactHandler (Supervisor* mysupervisor) {
 void ContactHandler::addContact(string name, bool loadInfos) {
 	if (isName(name)) {
 		cout << "ContactHandler: contact already exists: " << name << endl;
-		if (loadInfos && !isVideoReady(name)) m_supervisor->getTcp()->send_requestinfos(name);
+		if (loadInfos && !hasData(name)) m_supervisor->getTcp()->send_requestinfos(name);
 		return;
 	}
 	m_mutex->lock();
@@ -25,11 +25,11 @@ void ContactHandler::addContact(string name, bool loadInfos) {
 	m_contacts[name] = new contact;
 	m_contacts[name]->name = name;
 	m_contacts[name]->video = NULL;
+	m_contacts[name]->streamer = NULL;
 	m_contacts[name]->udp_ip = NULL;
 	m_contacts[name]->udp_port = 0;
 	m_contacts[name]->img_width = 0;
 	m_contacts[name]->img_height = 0;
-	m_contacts[name]->video_started = false;
 	m_contacts[name]->tcp_ip = NULL;
 	m_contacts[name]->tcp_port = 0;
 	m_contacts[name]->tcp_socket = NULL;
@@ -37,11 +37,12 @@ void ContactHandler::addContact(string name, bool loadInfos) {
 	m_contacts[name]->tcp_buffer_send = "";
 
 	m_mutex->unlock();
-	if (loadInfos && !isVideoReady(name)) m_supervisor->getTcp()->send_requestinfos(name);
+	if (loadInfos && !hasData(name)) m_supervisor->getTcp()->send_requestinfos(name);
 	cout << "ContactHandler: Added contact: " << name << endl;
 }
 void ContactHandler::removeContact(string name) {
-	stopVideo(name);
+	rmVideo(name);
+	rmStreamer(name);
 	m_mutex->lock();
 	m_contacts.erase(name);
 	m_mutex->unlock();
@@ -72,10 +73,10 @@ bool ContactHandler::changeName(string name, string newname) {
 			m_contacts[newname]->tcp_buffer_send = m_contacts[name]->tcp_buffer_send;
 		if (m_contacts[name]->tcp_socket != NULL)
 			m_contacts[newname]->tcp_socket = m_contacts[name]->tcp_socket;
-		if (m_contacts[name]->video_started != false)
-			m_contacts[newname]->video_started = m_contacts[name]->video_started;
 		if (m_contacts[name]->video != NULL)
 			m_contacts[newname]->video = m_contacts[name]->video;
+		if (m_contacts[name]->streamer != NULL)
+			m_contacts[newname]->streamer = m_contacts[name]->streamer;
 
 		/* two tcp-connections to same user?
 			Keep connection, where the user first in alphabetical order
@@ -119,6 +120,7 @@ bool ContactHandler::changeName(string name, string newname) {
 	m_contacts[newname]->name = newname;
 	m_mutex->unlock();
 
+	hasData(newname);
 	cout << "ContactHandler: Changed name from: " << name << " to " << newname << endl;
 cout << "Socket of user: " << m_contacts[newname]->tcp_socket << endl;
 	return true;
@@ -130,14 +132,14 @@ void ContactHandler::setUdpIp(string name, QHostAddress* ip) {
 	m_mutex->lock();
 	m_contacts[name]->udp_ip = ip;
 	m_mutex->unlock();
-	isVideoReady(name);
+	hasData(name);
 }
 void ContactHandler::setUdpPort(string name, quint16 port) {
 	if (!isName(name)) return;
 	m_mutex->lock();
 	m_contacts[name]->udp_port = port;
 	m_mutex->unlock();
-	isVideoReady(name);
+	hasData(name);
 }
 void ContactHandler::setImg(string name, quint16 width, quint16 height) {
 	if (!isName(name)) return;
@@ -145,21 +147,21 @@ void ContactHandler::setImg(string name, quint16 width, quint16 height) {
 	m_contacts[name]->img_width = width;
 	m_contacts[name]->img_height = height;
 	m_mutex->unlock();
-	isVideoReady(name);
+	hasData(name);
 }
 void ContactHandler::setWidth(string name, quint16 width) {
 	if (!isName(name)) return;
 	m_mutex->lock();
 	m_contacts[name]->img_width = width;
 	m_mutex->unlock();
-	isVideoReady(name);
+	hasData(name);
 }
 void ContactHandler::setHeight(string name, quint16 height) {
 	if (!isName(name)) return;
 	m_mutex->lock();
 	m_contacts[name]->img_height = height;
 	m_mutex->unlock();
-	isVideoReady(name);
+	hasData(name);
 }
 void ContactHandler::setTcpIp(string name, QHostAddress* ip) {
 	if (!isName(name)) return;
@@ -249,57 +251,111 @@ string ContactHandler::getTcpBufferSend(std::string name) {
 	return output;
 }
 
-// handle video
-MyVideo* ContactHandler::startVideo(string name) {
-	if (!isVideoReady(name)) return NULL;
+/* has data of contact
+  */
+bool ContactHandler::hasData (string name) {
 	m_mutex->lock();
-
-	if (m_contacts[name]->video == NULL) {
-		m_contacts[name]->video = new MyVideo(	m_contacts[name]->udp_ip,
-												m_contacts[name]->udp_port,
-												m_contacts[name]->img_width,
-												m_contacts[name]->img_height);
-	}
-	MyVideo* output = m_contacts[name]->video;
-
-	m_mutex->unlock();
-	return output;
-}
-void ContactHandler::stopVideo (string name) {
-	m_mutex->lock();
-	delete m_contacts[name]->video;
-	m_contacts[name]->video = NULL;
-	m_contacts[name]->video_started = false;
-	m_mutex->unlock();
-}
-bool ContactHandler::isVideo (string name) {
-	m_mutex->lock();
-	bool output = m_contacts[name]->video_started;
-	m_mutex->unlock();
-	return output;
-}
-
-bool ContactHandler::isVideoReady (string name) {
-	m_mutex->lock();
-	bool output = false;
-	if (m_contacts[name]
-			&& m_contacts[name]->udp_ip != NULL
-			&& m_contacts[name]->udp_port != 0
-			&& m_contacts[name]->img_width != 0
-			&& m_contacts[name]->img_height != 0
+	if (!m_contacts[name]
+			|| m_contacts[name]->udp_ip == NULL
+			|| m_contacts[name]->udp_port == 0
+			|| m_contacts[name]->img_width == 0
+			|| m_contacts[name]->img_height == 0
 	) {
-		output = true;
+		m_mutex->unlock();
+		return false;
 	}
 	m_mutex->unlock();
 
-	if (output && !isVideo(name)) {
-		m_mutex->lock();
-		m_contacts[name]->video_started = true;
+	// emit signal
+	emit s_isData(name);
+
+	return true;
+}
+
+/* get streamer object of person
+  */
+FuGaStreamer* ContactHandler::getStreamer (string name) {
+	if (!isName(name)) return NULL;
+
+	// already exists?
+	m_mutex->lock();
+	if (m_contacts[name]->streamer != NULL) {
 		m_mutex->unlock();
-		cout << "ContactHandler: Video ready for contact: " << name << endl;
+		return m_contacts[name]->streamer;
 	}
-	if (output) emit videoReady(name);
-	return output;
+	m_mutex->unlock();
+
+	// has enough data?
+	if (!hasData(name)) return NULL;
+
+	// create new streamer
+	m_mutex->lock();
+	m_contacts[name]->streamer = new FuGaStreamer(
+		m_contacts[name]->udp_ip,
+		m_supervisor->getConfig()->getInt("udp_port"),
+		m_supervisor->getConfig()->getInt("img_width"),
+		m_supervisor->getConfig()->getInt("img_height"),
+		m_supervisor->getConfig()->getConfig("video_path")
+	);
+	m_mutex->unlock();
+
+	// emit signal
+	emit s_isStreaming(name);
+
+	return m_contacts[name]->streamer;
+}
+
+/* delete streamer object of person
+  */
+void ContactHandler::rmStreamer (string name) {
+	if (!isName(name)) return;
+
+	m_mutex->lock();
+	if (m_contacts[name]->streamer != NULL) {
+		delete m_contacts[name]->streamer;
+		m_contacts[name]->streamer = NULL;
+	}
+	m_mutex->unlock();
+}
+
+/* get video object of person
+  */
+FuGaVideo* ContactHandler::getVideo (string name) {
+	if (!isName(name)) return NULL;
+
+	// already exists?
+	m_mutex->lock();
+	if (m_contacts[name]->video != NULL) {
+		m_mutex->unlock();
+		return m_contacts[name]->video;
+	}
+	m_mutex->unlock();
+
+	// has enough data?
+	if (!hasData(name)) return NULL;
+
+	// create new streamer
+	m_mutex->lock();
+	m_contacts[name]->video = new FuGaVideo(
+		m_contacts[name]->udp_ip,
+		m_contacts[name]->udp_port
+	);
+	m_mutex->unlock();
+
+	return m_contacts[name]->video;
+}
+
+/* delete video object of person
+  */
+void ContactHandler::rmVideo (string name) {
+	if (!isName(name)) return;
+
+	m_mutex->lock();
+	if (m_contacts[name]->video != NULL) {
+		delete m_contacts[name]->video;
+		m_contacts[name]->video = NULL;
+	}
+	m_mutex->unlock();
 }
 
 /* check, if contact name exists
@@ -309,7 +365,6 @@ bool ContactHandler::isName (string name) {
 	m_mutex->lock();
 	if (m_contacts.count(name) == 1) output = true;
 	m_mutex->unlock();
-	//cout << "ContactHandler: XXXXX user: " << name << " = " << output << " XXXXX" << endl;
 	return output;
 }
 
