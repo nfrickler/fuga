@@ -1,30 +1,26 @@
-#include "MyConfig.h"
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <sstream>
+#include "FugaConfig.h"
 
 using namespace std;
 
 /* constructor
  */
-MyConfig::MyConfig () {
+FugaConfig::FugaConfig () {
 	m_mutex = new QMutex();
 	m_path = ".config";
 
-	// read settings
+    // read config from file
 	_readConfig();
 
-	// make sure, config-file exists
+    // make sure, config-file exists
 	_writeConfig();
 }
 
 /* set setting
  */
-void MyConfig::setConfig(string name, string value) {
+void FugaConfig::setConfig(string name, string value) {
 	m_mutex->lock();
 
-	// replace all : and ; by _
+    // replace all : and ;  in name and value by _
 	name = replace(name, ":", "_");
 	name = replace(name, ";", "_");
 	value = replace(value, ":", "_");
@@ -37,8 +33,10 @@ void MyConfig::setConfig(string name, string value) {
 
 /* get setting
  */
-string MyConfig::getConfig(string name) {
+string FugaConfig::getConfig(string name) {
 	m_mutex->lock();
+
+    // name exists?
 	if (m_config.find(name) == m_config.end()) {
 		m_mutex->unlock();
 		return "";
@@ -49,11 +47,10 @@ string MyConfig::getConfig(string name) {
 	return output;
 }
 
-// read/write
-/* read settings from file (if available)
+/* read settings from file
  */
-void MyConfig::_readConfig() {
-	cout << "MyConfig: reading config..." << endl;
+void FugaConfig::_readConfig() {
+    cout << "FugaConfig: reading config..." << endl;
 	ifstream myfile;
 	myfile.open(m_path.c_str());
 
@@ -100,8 +97,8 @@ void MyConfig::_readConfig() {
 
 /* write settings to file
  */
-void MyConfig::_writeConfig() {
-	cout << "MyConfig: writing config..." << endl;
+void FugaConfig::_writeConfig() {
+    cout << "FugaConfig: writing config..." << endl;
 	ofstream myfile;
 	myfile.open (m_path.c_str());
 
@@ -120,42 +117,10 @@ void MyConfig::_writeConfig() {
 	myfile.close();
 }
 
-/* split string by "delim"
- * @param string: string to split
- * @param char: delimiter
- */
-vector<string> MyConfig::split(string s, string delim) {
-	vector<string> elems;
-	stringstream ss("");
-	ss << s;
-	string item;
-	char delimiter = *delim.data();
-	while(std::getline(ss, item, delimiter)) {
-		elems.push_back(item);
-	}
-	return elems;
-}
-
-/* replace strings in string
- */
-string MyConfig::replace(string str, string in, string out) {
-
-	// find first
-	unsigned int position = str.find(in);
-
-	// replace all
-	while ( position != string::npos ) {
-		str.replace(position, 1, out);
-		position = str.find(in, (position + 1));
-	}
-
-	return str;
-}
-
 /* get config-value as int
  * @param string: name of config
  */
-int MyConfig::getInt (string name) {
+int FugaConfig::getInt (string name) {
 	stringstream ss(getConfig(name));
 	int i;
 	if( (ss >> i).fail() ) {
@@ -168,7 +133,7 @@ int MyConfig::getInt (string name) {
 /* get config-value as bool
  * @param string: name of config
  */
-bool MyConfig::getBool (string name) {
+bool FugaConfig::getBool (string name) {
 	if (getInt(name)) return true;
 	return false;
 }

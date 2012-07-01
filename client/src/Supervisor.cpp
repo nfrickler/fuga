@@ -12,7 +12,7 @@ Supervisor::Supervisor () {
 	// create objects
 	m_main_window = new MyWindow(this);
 	m_contacthandler = new ContactHandler(this);
-	m_config = new MyConfig();
+    m_config = new FugaConfig();
 	m_tcpsocket = new MyTcpsocket(this);
 	m_meuser = new MeUser(this);
 
@@ -32,7 +32,7 @@ MyTcpsocket* Supervisor::getTcp () {
 ContactHandler* Supervisor::getContactHandler () {
 	return m_contacthandler;
 }
-MyConfig* Supervisor::getConfig () {
+FugaConfig* Supervisor::getConfig () {
 	return m_config;
 }
 MeUser* Supervisor::getMe() {

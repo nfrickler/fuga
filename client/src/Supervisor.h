@@ -4,14 +4,14 @@
 #include "MyWindow.h"
 #include "MyTcpsocket.h"
 #include "ContactHandler.h"
-#include "MyConfig.h"
+#include "FugaConfig.h"
 #include "MeUser.h"
 #include <QtGui>
 
 class MyWindow;
 class MyTcpsocket;
 class ContactHandler;
-class MyConfig;
+class FugaConfig;
 class MeUser;
 
 class Supervisor  : public QObject {
@@ -24,14 +24,14 @@ class Supervisor  : public QObject {
 		// get objects
 		MyTcpsocket* getTcp();
 		ContactHandler* getContactHandler();
-		MyConfig* getConfig();
+        FugaConfig* getConfig();
 		MyWindow* getWindow();
 		MeUser* getMe();
 
 	protected:
 		MyTcpsocket* m_tcpsocket;
 		ContactHandler* m_contacthandler;
-		MyConfig* m_config;
+        FugaConfig* m_config;
 		MeUser* m_meuser;
 		MyWindow* m_main_window;
 
