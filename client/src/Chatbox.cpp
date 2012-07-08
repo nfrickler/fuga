@@ -6,12 +6,12 @@ using namespace std;
 
 /* constructor
  */
-Chatbox::Chatbox (Supervisor* mysupervisor, string myname, vector<string> mypartners) {
+Chatbox::Chatbox (Fuga* in_Fuga, string myname, vector<string> mypartners) {
 	this->setMaximumWidth(350);
 	this->setMinimumWidth(250);
 
 	// save input
-	m_supervisor = mysupervisor;
+    m_Fuga = in_Fuga;
 	m_name = myname;
 	m_partners = mypartners;
 
@@ -25,9 +25,9 @@ Chatbox::Chatbox (Supervisor* mysupervisor, string myname, vector<string> mypart
 	m_input = new QLineEdit();
 	m_input->setWindowOpacity(0.7);
 	m_input->setMaximumHeight(30);
-	connect(m_input, SIGNAL(returnPressed()), this, SLOT(sendMsg()));
-	connect(m_supervisor->getTcp(), SIGNAL(newMsg(std::string, std::string, std::string)),
-			this, SLOT(getNewMsgs(std::string, std::string, std::string)));
+    //connect(m_input, SIGNAL(returnPressed()), this, SLOT(sendMsg()));
+    //connect(m_Fuga->getTcp(), SIGNAL(newMsg(std::string, std::string, std::string)),
+    //		this, SLOT(getNewMsgs(std::string, std::string, std::string)));
 
 	// layout
 	QVBoxLayout *my_layout = new QVBoxLayout();
@@ -50,7 +50,7 @@ void Chatbox::sendMsg() {
 	stringstream out ("");
 	out << "m_chat_msg-" << m_name << "|" << msg << ";";
 	for (vector<string>::iterator i = m_partners.begin(); i != m_partners.end(); ++i) {
-		m_supervisor->getTcp()->sendTo(*i, out.str());
+        //m_Fuga->getTcp()->sendTo(*i, out.str());
 	}
 
 	// add to own msgbox

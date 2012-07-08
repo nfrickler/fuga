@@ -1,10 +1,11 @@
-#include "Supervisor.h"
 #include <QApplication>
 #include <QFont>
 #include <iostream>
-
 #include <gst/gst.h>
 
+#include "Fuga.h"
+
+class Fuga;
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -34,8 +35,8 @@ int main(int argc, char *argv[]) {
 	QApplication app(argc, argv);
 	app.setFont(QFont("Arial"));
 
-	// create Supervisor object
-	new Supervisor();
+    // create Fuga object
+    new Fuga();
 
 	// run application
 	app.exec();

@@ -11,33 +11,34 @@ DESTDIR = bin
 OBJECTS_DIR = build
 MOC_DIR = build
 UI_DIR = build
-HEADERS = src/MyWindow.h \
-	src/Supervisor.h \
+HEADERS = \
 	src/ModVideochat.h \
-	src/MyTcpsocket.h \
-	src/ContactHandler.h \
-    src/MyUser.h \
-    src/MeUser.h \
     src/Chatbox.h \
     src/FuGaModule.h \
     src/FuGaStreamer.h \
     src/FuGaVideo.h \
     src/FugaConfig.h \
-    src/FugaHelperFuncs.h
+    src/FugaHelperFuncs.h \
+    src/Fuga.h \
+    src/FugaAuth.h \
+    src/FugaWindow.h \
+    src/FugaContacts.h \
+    src/FugaContact.h \
+    src/FugaDns.h
 SOURCES = src/main.cpp \
-	src/MyWindow.cpp \
-	src/Supervisor.cpp \
 	src/ModVideochat.cpp \
-	src/MyTcpsocket.cpp \
-	src/ContactHandler.cpp \
-    src/MyUser.cpp \
-    src/MeUser.cpp \
     src/Chatbox.cpp \
     src/FuGaModule.cpp \
     src/FuGaStreamer.cpp \
     src/FuGaVideo.cpp \
     src/FugaConfig.cpp \
-    src/FugaHelperFuncs.cpp
+    src/FugaHelperFuncs.cpp \
+    src/Fuga.cpp \
+    src/FugaAuth.cpp \
+    src/FugaWindow.cpp \
+    src/FugaContacts.cpp \
+    src/FugaContact.cpp \
+    src/FugaDns.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig

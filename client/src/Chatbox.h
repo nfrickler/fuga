@@ -1,7 +1,7 @@
 #ifndef CHATBOX_H
 #define CHATBOX_H
 
-#include "Supervisor.h"
+#include "Fuga.h"
 #include <QWidget>
 #include <vector>
 #include <QTextEdit>
@@ -16,10 +16,10 @@ class Chatbox : public QWidget {
     Q_OBJECT
 
 	public:
-		Chatbox(Supervisor* mysupervisor, std::string myname, std::vector<std::string> mypartners);
+        Chatbox(Fuga* in_Fuga, std::string myname, std::vector<std::string> mypartners);
 
 	protected:
-		Supervisor* m_supervisor;
+        Fuga* m_Fuga;
 		QLineEdit* m_input;
 		QTextEdit* m_msgbox;
 		std::vector<chatmsg> m_history;
@@ -28,8 +28,6 @@ class Chatbox : public QWidget {
 
 		std::vector<std::string> split(std::string s, std::string delim);
 		void addMsg (std::string name, std::string msg);
-
-	signals:
 
 	protected slots:
 		void sendMsg();

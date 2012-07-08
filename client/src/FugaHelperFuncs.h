@@ -10,5 +10,10 @@
 
 std::vector<std::string> split(std::string s, std::string delim);
 std::string replace(std::string str, std::string in, std::string out);
+std::string merge(std::string array1, std::string array2);
+
+std::string int2string(int i);
+int string2int(const std::string s);
+int char2int(char* s);
 
 #endif // FUGAHELPER_FUNCS_H

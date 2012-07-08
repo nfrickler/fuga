@@ -8,11 +8,11 @@ using namespace std;
 
 /* constructor
  */
-ModVideochat::ModVideochat(MyWindow* mywindow, Supervisor* mysupervisor) {
+ModVideochat::ModVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
 
 	// save input in obj-vars
 	m_main_window = mywindow;
-	m_supervisor = mysupervisor;
+    m_Fuga = in_Fuga;
 
 	// ask for name
 	askForPerson();
@@ -67,13 +67,13 @@ void ModVideochat::setConnectionData () {
 
 	// wait for videoReady
 	m_islistening = false;
-	connect(m_supervisor->getContactHandler(), SIGNAL(s_isData(std::string)), this, SLOT(slot_showVideo(std::string)));
+    connect(m_Fuga->getContacts(), SIGNAL(s_isData(std::string)), this, SLOT(slot_showVideo(std::string)));
 	m_timer = new QTimer();
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(slot_videoFailed()));
 	m_timer->start(10000);
 
 	// add contact
-	m_supervisor->getContactHandler()->addContact(m_name, true);
+   // m_Fuga->getContacts()->addContact(m_name, true);
 }
 
 void ModVideochat::slot_showVideo (string name) {
@@ -85,7 +85,7 @@ void ModVideochat::slot_showVideo (string name) {
 void ModVideochat::slot_videoFailed () {
 	cout << "ModVideochat: Connection to other host failed!" << endl;
 	m_timer->stop();
-	m_supervisor->showSelector();
+    m_Fuga->getWindow()->showSelection();
 }
 
 /* show videochat
@@ -98,8 +98,7 @@ void ModVideochat::showVideo () {
 	m_main_window->setCentralWidget(central_widget);
 
 	// start streaming
-	FuGaStreamer* mystreamer = m_supervisor->getContactHandler()->getStreamer(m_name);
-	mystreamer->start();
+    m_Fuga->getContacts()->getContact(m_name)->startStreaming();
 
 	// create label for video
 	stringstream webcam_label("");
@@ -108,10 +107,10 @@ void ModVideochat::showVideo () {
 	mylabel->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum));
 
 	// create myvideo
-	FuGaVideo* othercam = m_supervisor->getContactHandler()->getVideo(m_name);
+    FuGaVideo* othercam = m_Fuga->getContacts()->getContact(m_name)->Video();
 	if (othercam == NULL) {
 		newError("Could not start Video!");
-		m_supervisor->showSelector();
+        m_Fuga->getWindow()->showSelection();
 		return;
 	}
 	othercam->setStyleSheet("background:#000;");
@@ -120,14 +119,14 @@ void ModVideochat::showVideo () {
 	// create chat
 	vector<string> partner;
 	partner.push_back(m_name);
-	m_chatbox = new Chatbox(m_supervisor, m_supervisor->getMe()->getName(), partner);
-	m_chatbox->setStyleSheet("background:#222;");
+    //m_chatbox = new Chatbox(m_Fuga, m_Fuga->getMe()->getName(), partner);
+    //m_chatbox->setStyleSheet("background:#222;");
 
 	// merge in layout
 	QGridLayout* layout_grid = new QGridLayout();
 	layout_grid->addWidget(mylabel, 1, 0);
 	layout_grid->addWidget(othercam, 0, 0);
-	layout_grid->addWidget(m_chatbox, 0, 2, 1, 2);
+    //layout_grid->addWidget(m_chatbox, 0, 2, 1, 2);
 	central_widget->setLayout(layout_grid);
 	central_widget->setStyleSheet("color:#FFF;background:#000;");
 

@@ -8,8 +8,7 @@ using namespace std;
  */
 vector<string> split(string s, string delim) {
     vector<string> elems;
-    stringstream ss("");
-    ss << s;
+    stringstream ss(s);
     string item;
     char delimiter = *delim.data();
     while(std::getline(ss, item, delimiter)) {
@@ -32,4 +31,55 @@ string replace(string str, string in, string out) {
     }
 
     return str;
+}
+
+/* join to char-arrays
+ * @param string: first array to merge
+ * @param string: next array to merge
+ */
+string merge (string array1, string array2) {
+    string s;
+    ostringstream ss(s);
+    ss << array1;
+    ss << array2;
+    return s;
+}
+
+/* convert string to int
+ * @param string: string to convert
+ */
+int string2int (string s) {
+    stringstream ss(s);
+    int i;
+    if( (ss >> i).fail() ) {
+        // conversion failed
+        return 0;
+    }
+    return i;
+}
+
+/* convert string to int
+ * @param string: string to convert
+ */
+int char2int (char* s) {
+    stringstream ss(s);
+    int i;
+    if( (ss >> i).fail() ) {
+        // conversion failed
+        return 0;
+    }
+    return i;
+}
+
+/* convert int to string
+ * @param int: int to convert
+ */
+string int2string (int i) {
+    string s;
+    stringstream ss(s);
+    if( (ss << i).fail() ) {
+        // conversion failed
+        return "";
+    }
+    return s;
 }

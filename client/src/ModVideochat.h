@@ -2,30 +2,32 @@
 #define __MODVIDEOCHAT_H__
 
 #include "FuGaModule.h"
-#include "MyWindow.h"
+#include "FugaWindow.h"
 #include "FuGaVideo.h"
+#include "FuGaStreamer.h"
 #include "Chatbox.h"
-#include "Supervisor.h"
+#include "Fuga.h"
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QTimer>
 
-class MyWindow;
-class Supervisor;
+class FugaWindow;
+class Fuga;
 class FuGaVideo;
 class FuGaModule;
 class Chatbox;
+class FugaStreamer;
 
 class ModVideochat : public FuGaModule {
 	Q_OBJECT
 
 	public:
-		ModVideochat(MyWindow* mywindow, Supervisor* mysupervisor);
+        ModVideochat(FugaWindow* in_Window, Fuga* in_Fuga);
 
 	protected:
-		MyWindow* m_main_window;
-		Supervisor* m_supervisor;
-		QTimer* m_timer;
+        FugaWindow* m_main_window;
+        Fuga* m_Fuga;
+        QTimer* m_timer;
 
 		void askForPerson();
 		void showVideo();
