@@ -1,4 +1,4 @@
-#include "FuGaVideo.h"
+#include "FugaVideo.h"
 #include <QSize>
 #include <iostream>
 
@@ -13,7 +13,7 @@ GstElement* m_rtph263pdepay;
 
 /* constructor
  */
-FuGaVideo::FuGaVideo(QHostAddress* in_address, quint16 in_port) {
+FugaVideo::FugaVideo(QHostAddress* in_address, quint16 in_port) {
 
 	// init
 	m_address = in_address;
@@ -26,11 +26,11 @@ FuGaVideo::FuGaVideo(QHostAddress* in_address, quint16 in_port) {
 
 /* destructor
  */
-FuGaVideo::~FuGaVideo() {
+FugaVideo::~FugaVideo() {
 	stop();
 }
 
-void FuGaVideo::resizeEvent(QResizeEvent *e) {
+void FugaVideo::resizeEvent(QResizeEvent *e) {
 	cout << "Do resize!" << endl;
 	QSize size(4,3);
 	size.scale(e->size().width(),e->size().height(),Qt::KeepAspectRatio);
@@ -51,7 +51,7 @@ void FuGaVideo::resizeEvent(QResizeEvent *e) {
 	  udpsrc port=5003 ! rtpbin.recv_rtcp_sink_1                               \
 	  rtpbin.send_rtcp_src_1 ! udpsink port=5007 sync=false async=false
  */
-void FuGaVideo::init() {
+void FugaVideo::init() {
 
 	// pipeline
 	m_pipeline = gst_pipeline_new ("mypipeline");
@@ -141,7 +141,7 @@ void FuGaVideo::init() {
 
 /* start pipeline
  */
-void FuGaVideo::start() {
+void FugaVideo::start() {
 
 	// set xoverlay
 	WId xwinid = this->winId();
@@ -153,12 +153,12 @@ void FuGaVideo::start() {
 		gst_element_set_state (m_pipeline, GST_STATE_NULL);
 		gst_object_unref (m_pipeline);
 	}
-	cout << "FuGaVideo: start playing!" << endl;
+    cout << "FugaVideo: start playing!" << endl;
 }
 
 /* stop pipeline
  */
-void FuGaVideo::stop () {
+void FugaVideo::stop () {
 	gst_element_set_state (m_pipeline, GST_STATE_NULL);
 	g_object_unref(m_xvimagesink);
 	g_object_unref(m_rtpamrdepay);
@@ -169,7 +169,7 @@ void FuGaVideo::stop () {
 /* get messages/errors from gstreamer
  */
 gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement* sink) {
-	cout << "FuGaVideo: Bus Message ("
+    cout << "FugaVideo: Bus Message ("
 			  << GST_MESSAGE_TYPE_NAME(message)
 			  << ")..."
 			  << endl;
@@ -184,7 +184,7 @@ gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement*
 				gchar *dbg_info = NULL;
 
 				gst_message_parse_error (message, &err, &dbg_info);
-				g_printerr ("FuGaVideo: ERROR from element %s: %s\n",
+                g_printerr ("FugaVideo: ERROR from element %s: %s\n",
 					GST_OBJECT_NAME (message->src), err->message);
 				g_printerr ("Debugging info: %s\n", (dbg_info) ? dbg_info : "none");
 				g_error_free (err);

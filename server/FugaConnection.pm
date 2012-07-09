@@ -10,6 +10,8 @@
 use strict;
 use warnings;
 
+my $DEBUG = 1;
+
 # ####################################################################
 # FugaConnection
 # This object handles a single connection to a client
@@ -98,6 +100,7 @@ sub write {
     my $socket = $self->{socket};
     $self->{buf_out} =~ s/[\n\s\r]*$//;
     print $socket $self->{buf_out};
+    $DEBUG and print "FugaConnection: Sending: ".$self->{buf_out};
 
     # clear buffer
     $self->{buf_out} = '';

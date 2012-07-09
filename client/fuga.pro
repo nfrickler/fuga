@@ -12,33 +12,31 @@ OBJECTS_DIR = build
 MOC_DIR = build
 UI_DIR = build
 HEADERS = \
-	src/ModVideochat.h \
     src/Chatbox.h \
     src/FuGaModule.h \
-    src/FuGaStreamer.h \
-    src/FuGaVideo.h \
     src/FugaConfig.h \
     src/FugaHelperFuncs.h \
     src/Fuga.h \
-    src/FugaAuth.h \
     src/FugaWindow.h \
     src/FugaContacts.h \
     src/FugaContact.h \
-    src/FugaDns.h
+    src/FugaDns.h \
+    src/MFugaVideochat.h \
+    src/FugaVideo.h \
+    src/FugaStreamer.h
 SOURCES = src/main.cpp \
-	src/ModVideochat.cpp \
     src/Chatbox.cpp \
     src/FuGaModule.cpp \
-    src/FuGaStreamer.cpp \
-    src/FuGaVideo.cpp \
     src/FugaConfig.cpp \
     src/FugaHelperFuncs.cpp \
     src/Fuga.cpp \
-    src/FugaAuth.cpp \
     src/FugaWindow.cpp \
     src/FugaContacts.cpp \
     src/FugaContact.cpp \
-    src/FugaDns.cpp
+    src/FugaDns.cpp \
+    src/MFugaVideochat.cpp \
+    src/FugaStreamer.cpp \
+    src/FugaVideo.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig

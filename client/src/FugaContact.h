@@ -1,18 +1,18 @@
 #ifndef FUGACONTACT_H
 #define FUGACONTACT_H
 
-#include "Fuga.h"
-#include "FuGaVideo.h"
-#include "FuGaStreamer.h"
 #include <QHostAddress>
 #include <QTcpSocket>
-#include <QThread>
 #include <QTcpServer>
-#include <string>
-#include <vector>
 #include <map>
 #include <QSignalMapper>
 #include <QSslSocket>
+#include <QMutex>
+
+class Fuga;
+class FugaDns;
+class FugaVideo;
+class FugaStreamer;
 
 class FugaContact : public QObject {
     Q_OBJECT
@@ -37,18 +37,23 @@ class FugaContact : public QObject {
         bool            tcp_ip(QHostAddress* in_ip);
         std::string		tcp_buffer();
         bool            tcp_buffer(std::string in_buffer);
-        FuGaVideo*      Video();
-        FuGaStreamer*   Streamer();
+        FugaVideo*      Video();
+        FugaStreamer*   Streamer();
 
         bool startStreaming();
         bool stopStreaming();
-        bool isData();
-        bool isConnected();
         bool isContact(std::string in_name);
         bool isVideoReady();
         void send(std::string in_msg);
         void addToBuffer(std::string in_msg);
         void sendBuffer();
+
+        void resolve();
+        bool isResolved();
+        void doConnect();
+        bool isConnected();
+        void doFetch();
+        bool isFetched();
 
 
 
@@ -61,13 +66,15 @@ class FugaContact : public QObject {
         quint16			m_img_width;
         quint16			m_img_height;
 
+        std::map<std::string,std::string> m_data;
+
         QTcpSocket*		m_socket;
         quint16			m_tcp_port;
         QHostAddress*	m_tcp_ip;
         std::string		m_buffer;
 
-        FuGaVideo*      m_Video;
-        FuGaStreamer*   m_Streamer;
+        FugaVideo*      m_Video;
+        FugaStreamer*   m_Streamer;
         QMutex*         m_mutex;
 
         void getInfos();
@@ -75,14 +82,15 @@ class FugaContact : public QObject {
     signals:
         void sig_streaming();
         void sig_info();
-        void sig_contact();
+        void sig_connected();
         void sig_data();
         void sig_received(std::string type, std::string data);
 
     public slots:
-        void slot_infos(std::string type, std::string data);
+        void slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
+        void slot_handleError(QAbstractSocket::SocketError in_error);
         void slot_connected();
-        void slot_receive();
+        void slot_received();
 };
 
 #endif // FUGACONTACT_H

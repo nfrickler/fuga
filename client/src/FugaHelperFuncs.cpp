@@ -58,6 +58,19 @@ int string2int (string s) {
     return i;
 }
 
+/* convert string to quint16
+ * @param string: string to convert
+ */
+quint16 string2quint16 (string s) {
+    stringstream ss(s);
+    quint16 i;
+    if( (ss >> i).fail() ) {
+        // conversion failed
+        return 0;
+    }
+    return i;
+}
+
 /* convert string to int
  * @param string: string to convert
  */

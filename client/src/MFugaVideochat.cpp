@@ -1,14 +1,15 @@
-#include "ModVideochat.h"
+#include "MFugaVideochat.h"
 #include <QtGui>
 #include <QMessageBox>
 #include <iostream>
 #include <sstream>
 
+#include "FugaContact.h"
+
 using namespace std;
 
-/* constructor
- */
-ModVideochat::ModVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
+// constructors
+MFugaVideochat::MFugaVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
 
 	// save input in obj-vars
 	m_main_window = mywindow;
@@ -21,12 +22,12 @@ ModVideochat::ModVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
 	//m_main_window->showFullScreen();
 	//myownwebcam->resize(1000,1000);
 
-	cout << "ModVideochat: everything done" << endl;
+    cout << "MFugaVideochat: everything done" << endl;
 }
 
 /* show input-fields for person
  */
-void ModVideochat::askForPerson () {
+void MFugaVideochat::askForPerson () {
 
 	// delete centralWidget
 	delete m_main_window->centralWidget();
@@ -60,14 +61,17 @@ void ModVideochat::askForPerson () {
 
 /* set connection data from input-fields
  */
-void ModVideochat::setConnectionData () {
+void MFugaVideochat::setConnectionData () {
 
 	// read data from input-fields
 	m_name = m_name_input->text().toStdString();
 
+    // load contact
+    m_Contact = m_Fuga->getContacts()->getContact(m_name);
+
 	// wait for videoReady
 	m_islistening = false;
-    connect(m_Fuga->getContacts(), SIGNAL(s_isData(std::string)), this, SLOT(slot_showVideo(std::string)));
+    connect(m_Contact, SIGNAL(sig_info()), this, SLOT(slot_showVideo()));
 	m_timer = new QTimer();
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(slot_videoFailed()));
 	m_timer->start(10000);
@@ -76,21 +80,20 @@ void ModVideochat::setConnectionData () {
    // m_Fuga->getContacts()->addContact(m_name, true);
 }
 
-void ModVideochat::slot_showVideo (string name) {
-	if ((name.compare(m_name) != 0) || m_islistening) return;
+void MFugaVideochat::slot_showVideo () {
 	m_timer->stop();
 	m_islistening = true;
 	showVideo();
 }
-void ModVideochat::slot_videoFailed () {
-	cout << "ModVideochat: Connection to other host failed!" << endl;
+void MFugaVideochat::slot_videoFailed () {
+    cout << "MFugaVideochat: Connection to other host failed!" << endl;
 	m_timer->stop();
     m_Fuga->getWindow()->showSelection();
 }
 
 /* show videochat
  */
-void ModVideochat::showVideo () {
+void MFugaVideochat::showVideo () {
 
 	// create new central Widget
 	delete m_main_window->centralWidget();
@@ -98,7 +101,7 @@ void ModVideochat::showVideo () {
 	m_main_window->setCentralWidget(central_widget);
 
 	// start streaming
-    m_Fuga->getContacts()->getContact(m_name)->startStreaming();
+    m_Contact->startStreaming();
 
 	// create label for video
 	stringstream webcam_label("");
@@ -107,7 +110,7 @@ void ModVideochat::showVideo () {
 	mylabel->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum));
 
 	// create myvideo
-    FuGaVideo* othercam = m_Fuga->getContacts()->getContact(m_name)->Video();
+    FugaVideo* othercam = m_Contact->Video();
 	if (othercam == NULL) {
 		newError("Could not start Video!");
         m_Fuga->getWindow()->showSelection();
@@ -137,6 +140,6 @@ void ModVideochat::showVideo () {
 
 /* handle errors
  */
-void ModVideochat::newError(char *msg) {
+void MFugaVideochat::newError(char *msg) {
 	QMessageBox::critical((QWidget*) this, "Error", tr(msg));
 }

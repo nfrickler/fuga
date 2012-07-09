@@ -1,10 +1,10 @@
-#ifndef __MODVIDEOCHAT_H__
-#define __MODVIDEOCHAT_H__
+#ifndef __MFUGAVIDEOCHAT_H__
+#define __MFUGAVIDEOCHAT_H__
 
 #include "FuGaModule.h"
 #include "FugaWindow.h"
-#include "FuGaVideo.h"
-#include "FuGaStreamer.h"
+#include "FugaVideo.h"
+#include "FugaStreamer.h"
 #include "Chatbox.h"
 #include "Fuga.h"
 #include <QLineEdit>
@@ -13,21 +13,24 @@
 
 class FugaWindow;
 class Fuga;
-class FuGaVideo;
-class FuGaModule;
+class FugaVideo;
+class FugaModule;
 class Chatbox;
 class FugaStreamer;
+class FugaContact;
 
-class ModVideochat : public FuGaModule {
+class MFugaVideochat : public FuGaModule {
 	Q_OBJECT
 
 	public:
-        ModVideochat(FugaWindow* in_Window, Fuga* in_Fuga);
+        MFugaVideochat();
+        MFugaVideochat(FugaWindow* in_Window, Fuga* in_Fuga);
 
 	protected:
         FugaWindow* m_main_window;
         Fuga* m_Fuga;
         QTimer* m_timer;
+        FugaContact* m_Contact;
 
 		void askForPerson();
 		void showVideo();
@@ -45,9 +48,9 @@ class ModVideochat : public FuGaModule {
 	public slots:
 		void newError(char *msg);
 		void setConnectionData();
-		void slot_showVideo(std::string name);
+        void slot_showVideo();
 		void slot_videoFailed();
 
 };
 
-#endif // __MODVIDEOCHAT_H__
+#endif // __MFUGAVIDEOCHAT_H__

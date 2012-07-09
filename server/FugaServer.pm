@@ -11,7 +11,7 @@
 use strict;
 use warnings;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 
 # ####################################################################
 # FugaServer

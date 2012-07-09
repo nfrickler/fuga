@@ -9,7 +9,7 @@
 use strict;
 use warnings;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 
 package FugaServer;
 use FugaServer;
@@ -214,19 +214,15 @@ sub handleRequest {
 # login
 sub client_login {
     my ($User, $Conn, $data) = @_;
-    my ($name, $password) = split ",", $data;
+    my ($name, $password, $ip, $port) = split ",", $data;
 
     # try to login
-    my $result = $User->login($name, $password);
+    my $result = $User->login($name, $password, $ip, $port);
     return "a_login_failed" unless $result;
     return "a_login_confirm" if $result == 2;
 
-    # set tcp data
-    my $answer = "a_login_ok";
-    $answer.= ";a_login_tcpfailed"
-	unless $User->setTcp($Conn->{socket}->peerhost(), $Conn->{socket}->peerport());
-
-    return $answer;
+    # success
+    return "a_login_ok";
 }
 
 # get tcp data for name

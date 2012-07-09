@@ -1,37 +1,46 @@
 #include "FugaContacts.h"
+#include "Fuga.h"
 
 using namespace std;
 
-/* constructor
- */
+// constructor
 FugaContacts::FugaContacts (Fuga* in_Fuga) {
     m_Fuga = in_Fuga;
 	m_mutex = new QMutex();
+    m_Dns = NULL;
 
     // start server
-    _startServer();
+    startServer();
 
     // connect to root
-    // TODO
+    getDns();
 }
+
+// ################### contact handling #########################
 
 // get Contact
 FugaContact* FugaContacts::getContact(string in_name) {
     cout << "FugaContacts: Someone requested Contact " << in_name << endl;
 
     // create new contact
-    if (!isContact(in_name)) m_contacts[in_name] = new FugaContact(m_Fuga, in_name);
+    if (!isContact(in_name)) {
+        cout << "FugaContacts: Create new Contact" << endl;
+        m_contacts[in_name] = new FugaContact(m_Fuga, in_name);
+    }
 
     return m_contacts[in_name];
 }
 
+// do we have contact to person xyz?
 bool FugaContacts::isContact (string in_name) {
     map<string,FugaContact*>::const_iterator it = m_contacts.find(in_name);
     return it!=m_contacts.end();
 }
 
+// ########################### server ############################
+
 // start own server
-bool FugaContacts::_startServer() {
+bool FugaContacts::startServer() {
 
     // startup server
     m_Server = new QTcpServer();
@@ -41,16 +50,10 @@ bool FugaContacts::_startServer() {
     if (!m_Server->listen(myip, myport)) {
         cout << "Could not start server!" << endl;
     }
-    connect(m_Server, SIGNAL(newConnection()), this, SLOT(addPendingConnection()));
+    connect(m_Server, SIGNAL(newConnection()), this, SLOT(addPendingConnection()), Qt::UniqueConnection);
     cout << "FugaContacts: Started server on "
          << m_Server->serverAddress().toString().toAscii().data()
          << " : " << m_Server->serverPort() << endl;
-
-    // create signalmappers
-   // m_signalmapper = new QSignalMapper(this);
-   // connect(m_signalmapper, SIGNAL(mapped(QString)), this, SLOT(getAnswer(QString)));
-   // m_signalmapper_connect = new QSignalMapper(this);
-   // connect(m_signalmapper_connect, SIGNAL(mapped(QString)), this, SLOT(slot_mode_login(QString)));
 
     return true;
 }
@@ -70,21 +73,22 @@ void FugaContacts::addPendingConnection () {
 
     // connect signals
     connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
-        this, SLOT(handleError(QAbstractSocket::SocketError)));
-    connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
-    connect(socket, SIGNAL(readyRead()), m_signalmapper, SLOT (map()));
- //   m_signalmapper->setMapping(socket, QString(tr(name.c_str())));
-    connect(socket, SIGNAL(connected()), m_signalmapper_connect, SLOT (map()));
- //   m_signalmapper_connect->setMapping(mysocket, QString(tr(name.c_str())));
+        this, SLOT(slot_handleError(QAbstractSocket::SocketError)),Qt::UniqueConnection);
+    connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()),Qt::UniqueConnection);
 
+    // TODO
+    // connect READYREAD and CONNECTED
 }
 
-void FugaContacts::name2tcp (string in_name) {
-    stringstream ss("");
-    ss << "r_name2tcp-" << in_name << ";";
-    string hello = ss.str();
-    string name = "root";
-    getContact(name)->send(hello);
+// handle errors
+void FugaContacts::slot_handleError(QAbstractSocket::SocketError in_error) {
+    cout << "FugaContact: Connection error:" << in_error << endl;
 }
 
+// ########################## misc ###########################
 
+// get FugaDns object
+FugaDns* FugaContacts::getDns() {
+    if (m_Dns == NULL) m_Dns = new FugaDns(m_Fuga);
+    return m_Dns;
+}

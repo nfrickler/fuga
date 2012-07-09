@@ -1,43 +1,58 @@
 #ifndef FUGA_H
 #define FUGA_H
 
+
+#include "FugaDns.h"
+#include "FugaContacts.h"
+#include "MFugaVideochat.h"
+
 #include "FugaConfig.h"
 #include "FugaWindow.h"
-#include "FugaAuth.h"
-#include "ModVideochat.h"
 #include "FugaContacts.h"
 #include <iostream>
 
 class FugaConfig;
 class FugaWindow;
-class FugaAuth;
-class ModVideochat;
 class FugaContacts;
+class FugaModule;
 
 class Fuga : public QObject {
     Q_OBJECT
 
     public:
         Fuga();
+        void run();
         FugaConfig* getConfig();
         FugaWindow* getWindow();
-        FugaAuth* getAuth();
         FugaContacts* getContacts();
+
+        bool isLogged();
+        bool isSelected();
 
     protected:
         FugaConfig* m_Config;
         FugaWindow* m_Window;
-        FugaAuth* m_Auth;
         FugaContacts* m_Contacts;
 
-        void _mode_login();
-        void _mode_select();
-        void _mode_module();
+        std::string m_name;
+        std::string m_password;
+
+        bool m_loggedin;
+        FugaModule* m_selected;
+
+        void mode_login();
+        void doLogin();
+
+        void mode_select();
+        void mode_module();
 
     public slots:
-        void slot_mode_login();
+        void slot_login(std::string in_name, std::string in_password);
+        void slot_checklogin(int in_return);
+        void slot_startModule(QString in_name);
+
         void slot_mode_select();
-        void slot_mode_module();
+        void slot_mode_login();
 };
 
 #endif // FUGA_H

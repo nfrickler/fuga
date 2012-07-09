@@ -6,23 +6,22 @@
 #include <iostream>
 
 #include "Fuga.h"
-#include "FugaAuth.h"
 
 class Fuga;
-class FugaAuth;
 
 class FugaWindow : public QMainWindow {
 	Q_OBJECT
 
 	public:
         FugaWindow (Fuga* in_Fuga);
-        void showLogin(FugaAuth* Auth);
+        void showLogin();
         void showSelection();
         void showModule();
 
     protected:
         Fuga* m_Fuga;
 		void drawMenu();
+        void clearWindows();
 
         QMainWindow* m_second_window;
         QLineEdit* m_login_name;
@@ -30,6 +29,7 @@ class FugaWindow : public QMainWindow {
         QLineEdit* m_login_password2;
         std::string m_name;
         std::string m_password;
+        QSignalMapper* m_selection_signalmapper;
 
     public slots:
         void slot_clicked_login();

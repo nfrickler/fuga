@@ -1,15 +1,14 @@
-#include "FuGaStreamer.h"
+#include "FugaStreamer.h"
 #include <iostream>
 #include <sstream>
 #include <string>
 
 using namespace std;
 gboolean on_sink_message (GstBus* bus, GstMessage* message);
-FuGaStreamer* thisisme;
+FugaStreamer* thisisme;
 
-/* constructor
- */
-FuGaStreamer::FuGaStreamer (QHostAddress* in_address, quint16 in_port, quint16 in_width,
+// constructor
+FugaStreamer::FugaStreamer (QHostAddress* in_address, quint16 in_port, quint16 in_width,
 							quint16 in_height, string in_path) {
 
 	// save input
@@ -23,9 +22,8 @@ FuGaStreamer::FuGaStreamer (QHostAddress* in_address, quint16 in_port, quint16 i
 	return;
 }
 
-/* destructor
- */
-FuGaStreamer::~FuGaStreamer () {
+// destructor
+FugaStreamer::~FugaStreamer () {
 	stop();
 }
 
@@ -41,8 +39,8 @@ FuGaStreamer::~FuGaStreamer () {
 				   rtpbin.send_rtcp_src_1 ! udpsink port=5003 sync=false async=false    \
 				   udpsrc port=5007 ! rtpbin.recv_rtcp_sink_1
  */
-void FuGaStreamer::start () {
-	cout << "FuGaStreamer: start..." << endl;
+void FugaStreamer::start () {
+    cout << "FugaStreamer: start..." << endl;
 
 	// pipeline
 	m_pipeline = gst_pipeline_new ("mypipeline");
@@ -51,7 +49,7 @@ void FuGaStreamer::start () {
 
 	// video
     GstElement* videosrc;
-    if (0 && m_path.empty()) {
+    if (1 || m_path.empty()) {
         videosrc = gst_element_factory_make("v4l2src", NULL);
         gst_bin_add_many(GST_BIN (m_pipeline), videosrc, NULL);
     } else {
@@ -114,10 +112,10 @@ void FuGaStreamer::start () {
 
 	// pipeline ok?
 	if (m_pipeline == NULL) {
-		cout << "FuGaStreamer: Error on setting up pipeline." << endl;
+        cout << "FugaStreamer: Error on setting up pipeline." << endl;
 		return;
 	}
-	cout << "FuGaStreamer: pipeline created" << endl;
+    cout << "FugaStreamer: pipeline created" << endl;
 
 	// add signalhandler for bus messages
 	GstBus* bus = gst_element_get_bus (m_pipeline);
@@ -130,8 +128,8 @@ void FuGaStreamer::start () {
 
 /* stop grabbing
  */
-void FuGaStreamer::stop()  {
-	cout << "FuGaStreamer: Stop streaming." << endl;
+void FugaStreamer::stop()  {
+    cout << "FugaStreamer: Stop streaming." << endl;
 
 	// stop pipeline
 	gst_element_set_state (m_pipeline, GST_STATE_NULL);
@@ -143,22 +141,22 @@ void FuGaStreamer::stop()  {
 /* get messages/errors from gstreamer
  */
 gboolean on_sink_message (GstBus* bus, GstMessage* message) {
-	cout << "FuGaStreamer: Bus Message ("
+    cout << "FugaStreamer: Bus Message ("
 			  << GST_MESSAGE_TYPE_NAME(message)
 			  << ")..." << endl;
 
 	switch (GST_MESSAGE_TYPE (message)) {
 		case GST_MESSAGE_EOS:
-			cout << "FuGaStreamer: No more frames..." << endl;
+            cout << "FugaStreamer: No more frames..." << endl;
 			break;
 		case GST_MESSAGE_ERROR:
-			cout << "FuGaStreamer: Received error..." << endl;
+            cout << "FugaStreamer: Received error..." << endl;
 {
             GError *err = NULL;
             gchar *dbg_info = NULL;
 
             gst_message_parse_error (message, &err, &dbg_info);
-            g_printerr ("FuGaStreamer: ERROR from element %s: %s\n",
+            g_printerr ("FugaStreamer: ERROR from element %s: %s\n",
                 GST_OBJECT_NAME (message->src), err->message);
             g_printerr ("Debugging info: %s\n", (dbg_info) ? dbg_info : "none");
             g_error_free (err);

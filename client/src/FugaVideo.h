@@ -1,5 +1,5 @@
-#ifndef __FUGAVIDEO_H__
-#define __FUGAVIDEO_H__
+#ifndef __FugaVideo_H__
+#define __FugaVideo_H__
 
 #include <QWidget>
 #include <QHostAddress>
@@ -9,13 +9,13 @@
 #include <gst/gst.h>
 #include <gst/interfaces/xoverlay.h>
 
-class FuGaVideo : public QWidget {
+class FugaVideo : public QWidget {
 	Q_OBJECT
 
 	public:
-		FuGaVideo(QHostAddress* in_address, quint16 in_port);
+        FugaVideo(QHostAddress* in_address, quint16 in_port);
 		void resizeEvent(QResizeEvent *e);
-		~FuGaVideo();
+        ~FugaVideo();
 		void start();
 		void stop();
 
@@ -31,4 +31,4 @@ class FuGaVideo : public QWidget {
 
 };
 
-#endif // __FUGAVIDEO_H__
+#endif // __FugaVideo_H__

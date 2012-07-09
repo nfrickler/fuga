@@ -1,5 +1,5 @@
-#ifndef __FUGASTREAMER_H__
-#define __FUGASTREAMER_H__
+#ifndef __FugaStreamer_H__
+#define __FugaStreamer_H__
 
 #include <QObject>
 #include <QHostAddress>
@@ -8,13 +8,13 @@
 #include <gst/app/gstappsink.h>
 #include <gst/app/gstappbuffer.h>
 
-class FuGaStreamer : public QObject {
+class FugaStreamer : public QObject {
 	Q_OBJECT
 
 	public:
-		FuGaStreamer(QHostAddress* in_address, quint16 in_port, quint16 in_width,
+        FugaStreamer(QHostAddress* in_address, quint16 in_port, quint16 in_width,
 					 quint16 in_height, std::string in_path);
-		~FuGaStreamer();
+        ~FugaStreamer();
 
 	protected:
 		QHostAddress* m_address;
@@ -30,4 +30,4 @@ class FuGaStreamer : public QObject {
 		void stop();
 };
 
-#endif // __FUGASTREAMER_H__
+#endif // __FugaStreamer_H__

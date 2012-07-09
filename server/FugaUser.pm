@@ -9,7 +9,7 @@
 use strict;
 use warnings;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 
 # ####################################################################
 # FugaUser
@@ -39,7 +39,7 @@ sub new {
 }
 
 sub login {
-    my ($self, $name, $password) = @_;
+    my ($self, $name, $password, $ip, $port) = @_;
 
     # name exists?
     if ($self->isUser($name)) {
@@ -54,6 +54,8 @@ sub login {
 		UPDATE users
 		SET dateOfLast = NOW(),
 		    dateOfLogin = NOW(),
+		    tcp_ip = '$ip',
+		    tcp_port = '$port',
 		    logged = 1
 		WHERE name = '$name';";
 	    $self->_db($sql, 1);
