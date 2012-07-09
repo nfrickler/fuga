@@ -69,15 +69,15 @@ void FugaContacts::addPendingConnection () {
 
     // add pending connection
     QTcpSocket* socket = m_Server->nextPendingConnection();
-    m_pending[m_pending.size()] = m_Server->nextPendingConnection();
+    FugaContact* newcontact = new FugaContact(m_Fuga, socket);
+    connect(newcontact,SIGNAL(sig_hereiam(FugaContact*,std::string)),
+            this,SLOT(slot_add_hereiam(FugaContact*,std::string)), Qt::UniqueConnection);
+}
 
-    // connect signals
-    connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
-        this, SLOT(slot_handleError(QAbstractSocket::SocketError)),Qt::UniqueConnection);
-    connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()),Qt::UniqueConnection);
-
-    // TODO
-    // connect READYREAD and CONNECTED
+// add FugaContact to list
+void FugaContacts::slot_add_hereiam(FugaContact* in_Contact,std::string in_name) {
+    if (!isContact(in_name)) m_contacts[in_name] = in_Contact;
+    // TODO: if it already exists...!
 }
 
 // handle errors
@@ -92,3 +92,5 @@ FugaDns* FugaContacts::getDns() {
     if (m_Dns == NULL) m_Dns = new FugaDns(m_Fuga);
     return m_Dns;
 }
+
+// ######################### handle m_waiting ##################

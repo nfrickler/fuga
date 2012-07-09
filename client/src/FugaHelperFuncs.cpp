@@ -1,4 +1,5 @@
 #include "FugaHelperFuncs.h"
+#include <QMessageBox>
 
 using namespace std;
 
@@ -95,4 +96,16 @@ string int2string (int i) {
         return "";
     }
     return s;
+}
+
+// show popup error
+void showError (string in_msg) {
+    cout << "showError: " << in_msg << endl;
+    stringstream ss("");
+    ss << "Error: " << in_msg;
+    QMessageBox msgBox;
+    msgBox.setText(ss.str().c_str());
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
 }

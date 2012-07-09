@@ -23,7 +23,8 @@ HEADERS = \
     src/FugaDns.h \
     src/MFugaVideochat.h \
     src/FugaVideo.h \
-    src/FugaStreamer.h
+    src/FugaStreamer.h \
+    src/FugaMe.h
 SOURCES = src/main.cpp \
     src/Chatbox.cpp \
     src/FuGaModule.cpp \
@@ -36,7 +37,8 @@ SOURCES = src/main.cpp \
     src/FugaDns.cpp \
     src/MFugaVideochat.cpp \
     src/FugaStreamer.cpp \
-    src/FugaVideo.cpp
+    src/FugaVideo.cpp \
+    src/FugaMe.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig

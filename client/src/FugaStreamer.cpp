@@ -11,6 +11,8 @@ FugaStreamer* thisisme;
 FugaStreamer::FugaStreamer (QHostAddress* in_address, quint16 in_port, quint16 in_width,
 							quint16 in_height, string in_path) {
 
+    cout << "FugaStreamer: construct it" << endl;
+
 	// save input
 	m_address = in_address;
 	m_port = in_port;

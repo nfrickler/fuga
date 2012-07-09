@@ -17,6 +17,7 @@ std::string int2string(int i);
 int string2int(const std::string s);
 quint16 string2quint16(std::string s);
 int char2int(char* s);
+void showError(std::string in_msg);
 
 
 #endif // FUGAHELPER_FUNCS_H

@@ -22,8 +22,8 @@ class FugaDns : public FugaContact {
         void sig_loggedin(int in_return);
 
     public slots:
-        void slot_doResolve(std::string in_type, std::string in_data);
-        void slot_checklogin(std::string in_type, std::string in_data);
+        void slot_doResolve(std::string in_type,std::vector<std::string> in_data);
+        void slot_checklogin(std::string in_type,std::vector<std::string> in_data);
 
 };
 

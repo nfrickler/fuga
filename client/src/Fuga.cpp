@@ -87,6 +87,11 @@ FugaContacts* Fuga::getContacts() {
     return m_Contacts;
 }
 
+// get FugaMe
+FugaMe* Fuga::getMe() {
+    return m_Me;
+}
+
 // ########################## login ###############################
 
 // back to login mode (aka logout)
@@ -121,6 +126,7 @@ void Fuga::slot_checklogin(int in_return) {
         case 0: {
             // success
             cout << "Fuga: Login success!" << endl;
+            m_Me = new FugaMe(this,m_name);
             m_name = "";
             m_password = "";
             m_loggedin = true;
@@ -146,13 +152,7 @@ void Fuga::slot_checklogin(int in_return) {
             // no break
         }
         case 2: {
-            // login failed
-            cout << "Fuga: Login failed!" << endl;
-            QMessageBox msgBox;
-            msgBox.setText("Login fehlgeschlagen!");
-            msgBox.setStandardButtons(QMessageBox::Ok);
-            msgBox.setDefaultButton(QMessageBox::Ok);
-            msgBox.exec();
+            showError("Login failed!");
         }
     }
 

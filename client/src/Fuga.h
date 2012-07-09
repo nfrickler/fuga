@@ -3,6 +3,7 @@
 
 
 #include "FugaDns.h"
+#include "FugaMe.h"
 #include "FugaContacts.h"
 #include "MFugaVideochat.h"
 
@@ -22,6 +23,7 @@ class Fuga : public QObject {
     public:
         Fuga();
         void run();
+        FugaMe* getMe();
         FugaConfig* getConfig();
         FugaWindow* getWindow();
         FugaContacts* getContacts();
@@ -30,6 +32,7 @@ class Fuga : public QObject {
         bool isSelected();
 
     protected:
+        FugaMe* m_Me;
         FugaConfig* m_Config;
         FugaWindow* m_Window;
         FugaContacts* m_Contacts;

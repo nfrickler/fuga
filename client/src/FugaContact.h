@@ -19,8 +19,8 @@ class FugaContact : public QObject {
 
     public:
         FugaContact(Fuga* in_Fuga, std::string in_name);
+        FugaContact(Fuga* in_Fuga, QTcpSocket* in_socket);
         std::string     name();
-        bool            name(std::string in_name);
         QHostAddress*   udp_ip();
         bool            udp_ip(QHostAddress* in_ip);
         quint16			udp_port();
@@ -75,22 +75,25 @@ class FugaContact : public QObject {
 
         FugaVideo*      m_Video;
         FugaStreamer*   m_Streamer;
-        QMutex*         m_mutex;
 
         void getInfos();
+        void connectSocket();
 
     signals:
         void sig_streaming();
         void sig_info();
         void sig_connected();
-        void sig_data();
-        void sig_received(std::string type, std::string data);
+        void sig_fetched();
+        void sig_hereiam(FugaContact* in_Contact, std::string in_name);
+        void sig_received(std::string type, std::vector<std::string> data);
 
     public slots:
         void slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
         void slot_handleError(QAbstractSocket::SocketError in_error);
         void slot_connected();
         void slot_received();
+        void slot_doAnswer(std::string in_type,std::vector<std::string> in_data);
+        void slot_fetch(std::string in_type,std::vector<std::string> in_data);
 };
 
 #endif // FUGACONTACT_H

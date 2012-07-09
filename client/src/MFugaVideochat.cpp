@@ -71,7 +71,7 @@ void MFugaVideochat::setConnectionData () {
 
 	// wait for videoReady
 	m_islistening = false;
-    connect(m_Contact, SIGNAL(sig_info()), this, SLOT(slot_showVideo()));
+    connect(m_Contact, SIGNAL(sig_fetched()), this, SLOT(slot_showVideo()));
 	m_timer = new QTimer();
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(slot_videoFailed()));
 	m_timer->start(10000);
@@ -100,7 +100,7 @@ void MFugaVideochat::showVideo () {
 	QWidget *central_widget = new QWidget();
 	m_main_window->setCentralWidget(central_widget);
 
-	// start streaming
+    // start streaming
     m_Contact->startStreaming();
 
 	// create label for video

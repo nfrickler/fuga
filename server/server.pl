@@ -231,11 +231,12 @@ sub client_name2tcp {
 
     # get User
     my $Req = FugaUser->new($DB, $data);
-    return "a_name2tcp_failed-No such user!" unless $Req;
+    return "a_name2tcp_failed-".$data.",No such user!" unless $Req;
 
     # get data
     my ($ip, $port) = $Req->getTcp();
-    return "a_name2tcp_failed-No data" unless defined $ip and defined $port;
+    return "a_name2tcp_failed-".$data.",No data"
+	unless defined $ip and defined $port;
     return "a_name2tcp-$data,$ip,$port";
 }
 

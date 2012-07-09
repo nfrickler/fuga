@@ -12,8 +12,25 @@ FugaContact::FugaContact(Fuga* in_Fuga, std::string in_name)
     m_socket = NULL;
     m_tcp_ip = NULL;
     m_tcp_port = 0;
+    m_udp_ip = NULL;
+    m_udp_port = 0;
+    m_Streamer = NULL;
 
     if (in_name != "root") resolve();
+}
+
+FugaContact::FugaContact(Fuga* in_Fuga, QTcpSocket* in_socket)
+    : m_Fuga(in_Fuga),
+      m_socket(in_socket)
+{
+    m_tcp_ip = NULL;
+    m_tcp_port = 0;
+    m_udp_ip = NULL;
+    m_udp_port = 0;
+    m_Streamer = NULL;
+
+    connectSocket();
+    doFetch();
 }
 
 // ############################# accessors ########################
@@ -59,10 +76,7 @@ std::string	FugaContact::tcp_buffer() {
 bool FugaContact::startStreaming() {
 
     // already exists?
-    if (m_Streamer != NULL) {
-        return m_Streamer;
-    }
-    m_mutex->unlock();
+    if (m_Streamer != NULL) return m_Streamer;
 
     // has enough data?
     if (!isFetched()) return NULL;
@@ -75,6 +89,7 @@ bool FugaContact::startStreaming() {
         m_Fuga->getConfig()->getInt("img_height"),
         m_Fuga->getConfig()->getConfig("video_path")
     );
+    m_Streamer->start();
 
     // emit signal
     emit sig_streaming();
@@ -84,12 +99,10 @@ bool FugaContact::startStreaming() {
 
 bool FugaContact::stopStreaming() {
 
-    m_mutex->lock();
     if (m_Streamer != NULL) {
         delete m_Streamer;
         m_Streamer = NULL;
     }
-    m_mutex->unlock();
 
     return true;
 }
@@ -109,12 +122,6 @@ FugaVideo* FugaContact::Video() {
 }
 
 // ############################# status ########################
-
-bool FugaContact::isVideoReady() {
-    // TODO
-    return true;
-}
-
 
 // resolve username
 void FugaContact::resolve() {
@@ -145,14 +152,19 @@ void FugaContact::doConnect() {
     cout << "FugaContact: Start socket to: "
          << m_tcp_ip->toString().toAscii().data() << " : " << m_tcp_port << endl;
 
-    // connect signals
+    connectSocket();
+}
+
+// connect signals to socket
+void FugaContact::connectSocket() {
+    if (m_socket == NULL) return;
     connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
         this, SLOT(slot_handleError(QAbstractSocket::SocketError)),Qt::UniqueConnection);
-    connect(m_socket, SIGNAL(disconnected()), m_socket, SLOT(deleteLater()),Qt::UniqueConnection);
-    connect(m_socket, SIGNAL(readyRead()), this, SLOT(slot_received()),Qt::UniqueConnection);
-
     connect(m_socket, SIGNAL(connected()), this, SLOT(slot_connected()),Qt::UniqueConnection);
-
+    connect(m_socket, SIGNAL(readyRead()), this, SLOT(slot_received()),Qt::UniqueConnection);
+    connect(m_socket, SIGNAL(disconnected()), m_socket, SLOT(deleteLater()),Qt::UniqueConnection);
+    connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
+            this, SLOT(slot_doAnswer(std::string,std::vector<std::string>)),Qt::UniqueConnection);
 }
 
 // are we connected to other client
@@ -163,15 +175,9 @@ bool FugaContact::isConnected() {
     return false;
 }
 
-// fetch data of other client
-void FugaContact::doFetch() {
-
-}
-
-// do we have fetched the data of other client?
+// do we have fetched the udp data of other client?
 bool FugaContact::isFetched() {
-
-    return true;
+    return (m_udp_ip == NULL) ? false : true;
 }
 
 // ############################# send data ########################
@@ -205,7 +211,6 @@ void FugaContact::sendBuffer() {
 
 // slot to receive waiting data
 void FugaContact::slot_received () {
-    cout << "FugaContact: received sth" << endl;
 
     // read from socket
     if (m_socket == NULL || !m_socket->bytesAvailable()) return;
@@ -231,7 +236,10 @@ void FugaContact::slot_received () {
         string type = parts[0];
         string data = parts[1];
 
-        emit sig_received(type, data);
+        // split data into vector
+        vector<string> splitted = split(data, ",");
+
+        emit sig_received(type, splitted);
     }
 }
 
@@ -252,10 +260,12 @@ void FugaContact::slot_resolved(std::string in_name, QHostAddress* in_ip, quint1
     doConnect();
 }
 
+// we are connected
 void FugaContact::slot_connected() {
     cout << "FugaContact: slot_connected to " << m_name << endl;
     sendBuffer();
     emit sig_connected();
+    doFetch();
 }
 
 // handle errors
@@ -263,3 +273,55 @@ void FugaContact::slot_handleError(QAbstractSocket::SocketError in_error) {
     cout << "FugaContact: Connection error:" << in_error << endl;
 }
 
+// ########################## me - client  #############################
+
+// fetch udp connection data of other client
+void FugaContact::doFetch() {
+    connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
+            this, SLOT(slot_fetch(std::string,std::vector<std::string>)),Qt::UniqueConnection);
+    stringstream ss("");
+    ss << "r_udpdata-" << m_name << ";";
+    send(ss.str());
+}
+
+// fetch udpdata from answer
+void FugaContact::slot_fetch(string in_type, vector<string> in_data) {
+
+    // udpdata success
+    if (in_type == "a_udpdata_ok") {
+        if (m_name == "") m_name = in_data[0];
+        m_udp_ip = new QHostAddress(in_data[1].c_str());
+        m_udp_port = string2quint16(in_data[2]);
+        disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
+                   this, SLOT(slot_fetch(std::string,std::vector<std::string>)));
+        emit sig_hereiam(this,m_name);
+        emit sig_fetched();
+        return;
+    }
+
+    // udpdata failed
+    if (in_type == "a_udpdata_failed") {
+        showError("Could not fetch UDP data of contact!");
+    }
+}
+
+// ########################## client - me #############################
+
+void FugaContact::slot_doAnswer(string in_type,vector<string> in_data) {
+
+    if (in_type == "r_udpdata") {
+        stringstream ss("");
+        FugaMe* Me = m_Fuga->getMe();
+        if (Me == NULL) {
+            ss << "a_udpdata_failed-Not ready yet;";
+            send(ss.str());
+            return;
+        }
+        QHostAddress udpip = QHostAddress(m_Fuga->getConfig()->getConfig("udp_ip").c_str());
+        quint16 udpport = m_Fuga->getConfig()->getInt("udp_port");
+        ss << "a_udpdata_ok-" << Me->name() << ","
+           << udpip.toString().toAscii().data() << "," << udpport << ";";
+        send(ss.str());
+    }
+
+}

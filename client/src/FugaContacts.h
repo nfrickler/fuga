@@ -26,7 +26,6 @@ class FugaContacts : public QObject {
         FugaDns* m_Dns;
         QTcpServer* m_Server;
         std::map<std::string, FugaContact*> m_contacts;
-        std::map<int, QTcpSocket*> m_pending;
 		QMutex* m_mutex;
 
         bool startServer();
@@ -34,6 +33,7 @@ class FugaContacts : public QObject {
     public slots:
         void addPendingConnection();
         void slot_handleError(QAbstractSocket::SocketError in_error);
+        void slot_add_hereiam(FugaContact*,std::string);
 };
 
 #endif // __FUGACONTACTS_H__
