@@ -1,12 +1,12 @@
-#include "Chatbox.h"
+#include "FugaChat.h"
+#include "FugaHelperFuncs.h"
 #include <iostream>
 #include <sstream>
 
 using namespace std;
 
-/* constructor
- */
-Chatbox::Chatbox (Fuga* in_Fuga, string myname, vector<string> mypartners) {
+// constructor
+FugaChat::FugaChat (Fuga* in_Fuga, string myname, vector<string> mypartners) {
 	this->setMaximumWidth(350);
 	this->setMinimumWidth(250);
 
@@ -25,9 +25,13 @@ Chatbox::Chatbox (Fuga* in_Fuga, string myname, vector<string> mypartners) {
 	m_input = new QLineEdit();
 	m_input->setWindowOpacity(0.7);
 	m_input->setMaximumHeight(30);
-    //connect(m_input, SIGNAL(returnPressed()), this, SLOT(sendMsg()));
-    //connect(m_Fuga->getTcp(), SIGNAL(newMsg(std::string, std::string, std::string)),
-    //		this, SLOT(getNewMsgs(std::string, std::string, std::string)));
+    connect(m_input, SIGNAL(returnPressed()), this, SLOT(slot_send()), Qt::UniqueConnection);
+
+    // connect partners
+    for (vector<string>::iterator i = m_partners.begin(); i != m_partners.end(); ++i) {
+        connect(m_Fuga->getContacts()->getContact(*i), SIGNAL(sig_received(std::string,std::vector<std::string>)),
+                this, SLOT(slot_receive(std::string,std::vector<std::string>)), Qt::UniqueConnection);
+    }
 
 	// layout
 	QVBoxLayout *my_layout = new QVBoxLayout();
@@ -40,9 +44,8 @@ Chatbox::Chatbox (Fuga* in_Fuga, string myname, vector<string> mypartners) {
 
 // ##################### slots ###################### #
 
-/* send own message
- */
-void Chatbox::sendMsg() {
+// send own message
+void FugaChat::slot_send() {
 	string msg = m_input->text().toAscii().data();
 	if (msg.compare("") == 0) return;
 
@@ -50,7 +53,7 @@ void Chatbox::sendMsg() {
 	stringstream out ("");
 	out << "m_chat_msg-" << m_name << "|" << msg << ";";
 	for (vector<string>::iterator i = m_partners.begin(); i != m_partners.end(); ++i) {
-        //m_Fuga->getTcp()->sendTo(*i, out.str());
+        m_Fuga->getContacts()->getContact(*i)->send(out.str());
 	}
 
 	// add to own msgbox
@@ -60,22 +63,16 @@ void Chatbox::sendMsg() {
 	m_input->setText("");
 }
 
-/* get new messages from tcp
- */
-void Chatbox::getNewMsgs (string type, string fulltype, string msg) {
-	if (type.compare("chat") != 0) return;
-	cout << fulltype << endl;
+// get new messages of contacts
+void FugaChat::slot_receive (std::string in_type, std::vector<std::string> in_data) {
+    if (in_type.compare("chat") != 0) return;
+    if (in_data.size() != 2) return;
 
-	// split name and message
-	vector<string> tmp = split(msg, "|");
-	if (tmp.size() != 2) return;
-
-	addMsg(tmp[0], tmp[1]);
+    addMsg(in_data[0], in_data[1]);
 }
 
-/* add msg to message-box
- */
-void Chatbox::addMsg (string name, string msg) {
+// add msg to message-box
+void FugaChat::addMsg (string name, string msg) {
 
 	// add msg to msgbox
 	stringstream newtext ("");
@@ -83,19 +80,4 @@ void Chatbox::addMsg (string name, string msg) {
 	newtext << name << ":	" << msg << endl;
 	m_msgbox->setPlainText(QString(newtext.str().c_str()));
 	m_msgbox->moveCursor(QTextCursor::End);
-}
-
-/* split string by "delim"
- * @param string: string to split
- * @param char: delimiter
- */
-vector<string> Chatbox::split(string s, string delim) {
-	vector<string> elems;
-	stringstream ss(s);
-	string item;
-	char delimiter = *delim.data();
-	while(std::getline(ss, item, delimiter)) {
-		elems.push_back(item);
-	}
-	return elems;
 }

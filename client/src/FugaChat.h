@@ -1,5 +1,5 @@
-#ifndef CHATBOX_H
-#define CHATBOX_H
+#ifndef FugaChat_H
+#define FugaChat_H
 
 #include "Fuga.h"
 #include <QWidget>
@@ -7,16 +7,18 @@
 #include <QTextEdit>
 #include <QLineEdit>
 
+class FugaContact;
+
 struct chatmsg {
 	std::string name;
 	std::string msg;
 };
 
-class Chatbox : public QWidget {
+class FugaChat : public QWidget {
     Q_OBJECT
 
 	public:
-        Chatbox(Fuga* in_Fuga, std::string myname, std::vector<std::string> mypartners);
+        FugaChat(Fuga* in_Fuga, std::string myname, std::vector<std::string> mypartners);
 
 	protected:
         Fuga* m_Fuga;
@@ -24,17 +26,16 @@ class Chatbox : public QWidget {
 		QTextEdit* m_msgbox;
 		std::vector<chatmsg> m_history;
 		std::vector<std::string> m_partners;
-		std::string m_name;
+        std::string m_name;
 
-		std::vector<std::string> split(std::string s, std::string delim);
 		void addMsg (std::string name, std::string msg);
 
 	protected slots:
-		void sendMsg();
+        void slot_send();
 
 	public slots:
-		void getNewMsgs (std::string type, std::string fulltype, std::string msg);
+        void slot_receive (std::string in_type, std::vector<std::string> in_data);
 
 };
 
-#endif // CHATBOX_H
+#endif // FugaChat_H

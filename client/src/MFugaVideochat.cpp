@@ -1,4 +1,5 @@
 #include "MFugaVideochat.h"
+#include "FugaChat.h"
 #include <QtGui>
 #include <QMessageBox>
 #include <iostream>
@@ -122,14 +123,14 @@ void MFugaVideochat::showVideo () {
 	// create chat
 	vector<string> partner;
 	partner.push_back(m_name);
-    //m_chatbox = new Chatbox(m_Fuga, m_Fuga->getMe()->getName(), partner);
-    //m_chatbox->setStyleSheet("background:#222;");
+    m_Chat = new FugaChat(m_Fuga, m_Fuga->getMe()->name(), partner);
+    m_Chat->setStyleSheet("background:#222;");
 
 	// merge in layout
 	QGridLayout* layout_grid = new QGridLayout();
 	layout_grid->addWidget(mylabel, 1, 0);
 	layout_grid->addWidget(othercam, 0, 0);
-    //layout_grid->addWidget(m_chatbox, 0, 2, 1, 2);
+    layout_grid->addWidget(m_Chat, 0, 2, 1, 2);
 	central_widget->setLayout(layout_grid);
 	central_widget->setStyleSheet("color:#FFF;background:#000;");
 
@@ -138,8 +139,7 @@ void MFugaVideochat::showVideo () {
 	othercam->start();
 }
 
-/* handle errors
- */
+// handle errors
 void MFugaVideochat::newError(char *msg) {
 	QMessageBox::critical((QWidget*) this, "Error", tr(msg));
 }

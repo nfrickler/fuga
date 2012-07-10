@@ -5,7 +5,6 @@
 #include "FugaWindow.h"
 #include "FugaVideo.h"
 #include "FugaStreamer.h"
-#include "Chatbox.h"
 #include "Fuga.h"
 #include <QLineEdit>
 #include <QTextEdit>
@@ -15,7 +14,7 @@ class FugaWindow;
 class Fuga;
 class FugaVideo;
 class FugaModule;
-class Chatbox;
+class FugaChat;
 class FugaStreamer;
 class FugaContact;
 
@@ -43,7 +42,7 @@ class MFugaVideochat : public FuGaModule {
 		QLineEdit* m_name_input;
 
 		// chat
-		Chatbox* m_chatbox;
+        FugaChat* m_Chat;
 
 	public slots:
 		void newError(char *msg);
