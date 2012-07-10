@@ -140,14 +140,17 @@ void FugaStreamer::stop()  {
 
 // get messages/errors from gstreamer
 gboolean on_sink_message (GstBus* bus, GstMessage* message) {
-    cout << "FugaStreamer: Bus Message ("
-			  << GST_MESSAGE_TYPE_NAME(message)
-			  << ")..." << endl;
+    //cout << "FugaStreamer: Bus Message ("
+    //		  << GST_MESSAGE_TYPE_NAME(message)
+    //		  << ")..." << endl;
 
 	switch (GST_MESSAGE_TYPE (message)) {
 		case GST_MESSAGE_EOS:
             cout << "FugaStreamer: No more frames..." << endl;
 			break;
+        case GST_MESSAGE_STREAM_STATUS:
+            //cout << "FugaStreamer: Status changed." << endl;
+            break;
 		case GST_MESSAGE_ERROR:
             cout << "FugaStreamer: Received error..." << endl;
 {

@@ -1,6 +1,8 @@
 #include "FugaVideo.h"
 #include <QSize>
 #include <iostream>
+#include <gst/interfaces/xoverlay.h>
+#include <QApplication>
 
 using namespace std;
 gboolean on_sink_message_listener (GstBus * bus, GstMessage * message, GstElement * sink);
@@ -20,6 +22,7 @@ FugaVideo::FugaVideo(QHostAddress* in_address, quint16 in_port) {
 
 	// init pipeline
     setAttribute(Qt::WA_NativeWindow,true);
+    setAttribute(Qt::WA_PaintOnScreen,true);
 	init();
 }
 
@@ -85,8 +88,11 @@ void FugaVideo::init() {
 	// video -> output
 	m_rtph263pdepay = gst_element_factory_make ("rtph263pdepay", NULL);
 	GstElement* ffdec_h263 = gst_element_factory_make ("ffdec_h263", NULL);
-    m_xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
-	gst_bin_add_many(GST_BIN (m_pipeline), m_rtph263pdepay, ffdec_h263, m_xvimagesink, NULL);
+    m_xvimagesink = gst_element_factory_make ("xvimagesink", "screen_sink");
+    gst_object_ref( m_xvimagesink );
+    gst_object_sink( m_xvimagesink );
+
+    gst_bin_add_many(GST_BIN (m_pipeline), m_rtph263pdepay, ffdec_h263, m_xvimagesink, NULL);
 	gst_element_link(m_rtph263pdepay, ffdec_h263);
 	gst_element_link(ffdec_h263, m_xvimagesink);
 
@@ -141,23 +147,16 @@ void FugaVideo::init() {
 // start pipeline
 void FugaVideo::start() {
 
-    // an alternative?
-     gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(m_xvimagesink),winId());
-    /* do your maths about your coordinates */
-     int x = 10;
-     int y = 10;
-     int width = 100;
-     int height = 100;
-    //  gst_x_overlay_set_render_rectangle(GST_X_OVERLAY(m_xvimagesink), x, y, width, height);
-
-    // set xoverlay
-   // gst_x_overlay_set_window_handle (GST_X_OVERLAY (m_xvimagesink), winId());
+    // init overlay
+    WId myid = winId();
+    QApplication::syncX(); // x11 only
+    gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(m_xvimagesink),myid);
 
 	// start playing
 	GstStateChangeReturn sret = gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
 	if (sret == GST_STATE_CHANGE_FAILURE) {
 		gst_element_set_state (m_pipeline, GST_STATE_NULL);
-		gst_object_unref (m_pipeline);
+        gst_object_unref(m_pipeline);
 	}
     cout << "FugaVideo: start playing!" << endl;
 }
@@ -173,15 +172,16 @@ void FugaVideo::stop () {
 
 // get messages/errors from gstreamer
 gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement* sink) {
-    cout << "FugaVideo: Bus Message ("
-			  << GST_MESSAGE_TYPE_NAME(message)
-			  << ")..."
-			  << endl;
+    //cout << "FugaVideo: Bus Message ("
+    //     << GST_MESSAGE_TYPE_NAME(message) << ")..." << endl;
 
 	switch (GST_MESSAGE_TYPE (message)) {
 		case GST_MESSAGE_EOS:
-			cout << "TStreamListener: No more frames..." << endl;
+            cout << "FugaVideo: No more frames..." << endl;
 			break;
+        case GST_MESSAGE_STREAM_STATUS:
+            //cout << "FugaVideo: Status changed." << endl;
+            break;
 		case GST_MESSAGE_ERROR:
 			{
 				GError *err = NULL;
@@ -195,11 +195,14 @@ gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement*
 				g_free (dbg_info);
 			}
 			break;
-		default:
-			break;
+        case GST_MESSAGE_WARNING:
+            cout << "FugaVideo: Warning!" << endl;
+            break;
+        default:
+            break;
 	}
 
-	return TRUE;
+    return TRUE;
 }
 
 // add pads dynamically
