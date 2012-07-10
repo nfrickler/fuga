@@ -11,25 +11,24 @@ GstElement* m_rtpamrdepay;
 GstElement* m_rtph263pdepay;
 
 
-/* constructor
- */
+// constructor
 FugaVideo::FugaVideo(QHostAddress* in_address, quint16 in_port) {
 
 	// init
 	m_address = in_address;
-	m_port = in_port;
+    m_port = in_port;
 
 	// init pipeline
-	this->setAttribute(Qt::WA_NativeWindow,true);
+    setAttribute(Qt::WA_NativeWindow,true);
 	init();
 }
 
-/* destructor
- */
+// destructor
 FugaVideo::~FugaVideo() {
 	stop();
 }
 
+// resize event
 void FugaVideo::resizeEvent(QResizeEvent *e) {
 	cout << "Do resize!" << endl;
 	QSize size(4,3);
@@ -86,7 +85,7 @@ void FugaVideo::init() {
 	// video -> output
 	m_rtph263pdepay = gst_element_factory_make ("rtph263pdepay", NULL);
 	GstElement* ffdec_h263 = gst_element_factory_make ("ffdec_h263", NULL);
-	m_xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
+    m_xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
 	gst_bin_add_many(GST_BIN (m_pipeline), m_rtph263pdepay, ffdec_h263, m_xvimagesink, NULL);
 	gst_element_link(m_rtph263pdepay, ffdec_h263);
 	gst_element_link(ffdec_h263, m_xvimagesink);
@@ -136,16 +135,23 @@ void FugaVideo::init() {
 	// add signalhandler for bus messages
 	GstBus* bus = gst_element_get_bus (m_pipeline);
 	gst_bus_add_watch (bus, (GstBusFunc) on_sink_message_listener, m_pipeline);
-	gst_object_unref (bus);
+    gst_object_unref (bus);
 }
 
-/* start pipeline
- */
+// start pipeline
 void FugaVideo::start() {
 
-	// set xoverlay
-	WId xwinid = this->winId();
-	gst_x_overlay_set_window_handle (GST_X_OVERLAY (m_xvimagesink), xwinid);
+    // an alternative?
+     gst_x_overlay_set_xwindow_id(GST_X_OVERLAY(m_xvimagesink),winId());
+    /* do your maths about your coordinates */
+     int x = 10;
+     int y = 10;
+     int width = 100;
+     int height = 100;
+    //  gst_x_overlay_set_render_rectangle(GST_X_OVERLAY(m_xvimagesink), x, y, width, height);
+
+    // set xoverlay
+   // gst_x_overlay_set_window_handle (GST_X_OVERLAY (m_xvimagesink), winId());
 
 	// start playing
 	GstStateChangeReturn sret = gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
@@ -156,8 +162,7 @@ void FugaVideo::start() {
     cout << "FugaVideo: start playing!" << endl;
 }
 
-/* stop pipeline
- */
+// stop pipeline
 void FugaVideo::stop () {
 	gst_element_set_state (m_pipeline, GST_STATE_NULL);
 	g_object_unref(m_xvimagesink);
@@ -166,8 +171,7 @@ void FugaVideo::stop () {
 	g_object_unref(m_pipeline);
 }
 
-/* get messages/errors from gstreamer
- */
+// get messages/errors from gstreamer
 gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement* sink) {
     cout << "FugaVideo: Bus Message ("
 			  << GST_MESSAGE_TYPE_NAME(message)
@@ -198,24 +202,22 @@ gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement*
 	return TRUE;
 }
 
-/* add rtp-streams dynamically
-  */
-static void pad_added_cb (GstElement * rtpbin, GstPad * new_pad, GstElement* depay) {
-  g_print ("New rtp-pad: %s\n", GST_PAD_NAME (new_pad));
-  gchar* myname = g_str_copy_substr(GST_PAD_NAME (new_pad), 0, 14);
+// add pads dynamically
+static void pad_added_cb (GstElement* rtpbin, GstPad* new_pad, GstElement* depay) {
+    g_print ("FugaVideo: New rtp-pad: %s\n", GST_PAD_NAME (new_pad));
+    gchar* myname = g_str_copy_substr(GST_PAD_NAME (new_pad), 0, 14);
 
-  // get pad to connect to
-  depay = (g_strcasecmp(myname, "recv_rtp_src_1") == 0) ? m_rtpamrdepay : m_rtph263pdepay ;
-  GstPad* sinkpad = gst_element_get_static_pad (depay, "sink");
-  g_assert (sinkpad);
+    // get pad to connect to
+    depay = (g_strcasecmp(myname, "recv_rtp_src_1") == 0) ? m_rtpamrdepay : m_rtph263pdepay ;
+    GstPad* sinkpad = gst_element_get_static_pad (depay, "sink");
+    g_assert (sinkpad);
 
-  GstPadLinkReturn lres = gst_pad_link (new_pad, sinkpad);
-  g_assert (lres == GST_PAD_LINK_OK);
-  gst_object_unref (sinkpad);
+    GstPadLinkReturn lres = gst_pad_link (new_pad, sinkpad);
+    g_assert (lres == GST_PAD_LINK_OK);
+    gst_object_unref (sinkpad);
 }
 
-/* substr
-  */
+// substr
 gchar* g_str_copy_substr (const gchar *str, guint index, guint count) {
 	gchar *result;
 	guint i;

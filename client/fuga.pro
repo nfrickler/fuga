@@ -12,7 +12,6 @@ OBJECTS_DIR = build
 MOC_DIR = build
 UI_DIR = build
 HEADERS = \
-    src/FuGaModule.h \
     src/FugaConfig.h \
     src/FugaHelperFuncs.h \
     src/Fuga.h \
@@ -26,7 +25,6 @@ HEADERS = \
     src/FugaMe.h \
     src/FugaChat.h
 SOURCES = src/main.cpp \
-    src/FuGaModule.cpp \
     src/FugaConfig.cpp \
     src/FugaHelperFuncs.cpp \
     src/Fuga.cpp \

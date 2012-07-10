@@ -1,7 +1,6 @@
 #ifndef __MFUGAVIDEOCHAT_H__
 #define __MFUGAVIDEOCHAT_H__
 
-#include "FuGaModule.h"
 #include "FugaWindow.h"
 #include "FugaVideo.h"
 #include "FugaStreamer.h"
@@ -13,12 +12,11 @@
 class FugaWindow;
 class Fuga;
 class FugaVideo;
-class FugaModule;
 class FugaChat;
 class FugaStreamer;
 class FugaContact;
 
-class MFugaVideochat : public FuGaModule {
+class MFugaVideochat : public QObject {
 	Q_OBJECT
 
 	public:
@@ -34,21 +32,16 @@ class MFugaVideochat : public FuGaModule {
 		void askForPerson();
 		void showVideo();
 
-		// current connection
-		std::string m_name;
-		bool m_islistening;
-
 		// set connection details
 		QLineEdit* m_name_input;
 
 		// chat
         FugaChat* m_Chat;
 
-	public slots:
-		void newError(char *msg);
+    public slots:
 		void setConnectionData();
         void slot_showVideo();
-		void slot_videoFailed();
+        void slot_videoFailed();
 
 };
 

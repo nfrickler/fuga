@@ -40,6 +40,12 @@ void FugaWindow::drawMenu () {
     connect(gotoLogin, SIGNAL(triggered()), m_Fuga, SLOT(slot_mode_login()), Qt::UniqueConnection);
     fileMenu->addAction(gotoLogin);
 
+    // back to login
+    QAction* gotoFullscreen = new QAction(tr("&Vollbild"),this);
+    gotoFullscreen->setShortcut(tr("CTRL+F"));
+    connect(gotoFullscreen, SIGNAL(triggered()), this, SLOT(slot_fullscreen()), Qt::UniqueConnection);
+    fileMenu->addAction(gotoFullscreen);
+
 	// exit
 	QAction* exit = new QAction(tr("&Beenden"),this);
 	exit->setShortcuts(QKeySequence::Close);
@@ -161,4 +167,12 @@ void FugaWindow::clearWindows() {
         m_second_window = NULL;
     }
     //hide();
+}
+
+void FugaWindow::slot_fullscreen() {
+    if (isFullScreen()) {
+        showNormal();
+    } else {
+        showFullScreen();
+    }
 }

@@ -32,6 +32,7 @@ class FugaWindow : public QMainWindow {
         QSignalMapper* m_selection_signalmapper;
 
     public slots:
+        void slot_fullscreen();
         void slot_clicked_login();
 
     signals:

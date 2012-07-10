@@ -23,7 +23,7 @@ class FugaVideo : public QWidget {
 
 		void init();
 		GstElement* m_pipeline;
-		GstElement* m_xvimagesink;
+        GstElement* m_xvimagesink;
 
 		// sizes
 		QHostAddress* m_address;
