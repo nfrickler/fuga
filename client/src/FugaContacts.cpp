@@ -40,22 +40,13 @@ bool FugaContacts::isContact (string in_name) {
 // ########################### server ############################
 
 // start own server
-bool FugaContacts::startServer() {
-
-    // startup server
-    m_Server = new QTcpServer();
-    //m_Server = new QSslSocket();
-    QHostAddress myip = QHostAddress(m_Fuga->getConfig()->getConfig("tcp_ip").c_str());
+void FugaContacts::startServer() {
+    m_Server = new FugaSslServer();
     quint16 myport = m_Fuga->getConfig()->getInt("tcp_port");
-    if (!m_Server->listen(myip, myport)) {
-        cout << "Could not start server!" << endl;
-    }
-    connect(m_Server, SIGNAL(newConnection()), this, SLOT(addPendingConnection()), Qt::UniqueConnection);
-    cout << "FugaContacts: Started server on "
-         << m_Server->serverAddress().toString().toAscii().data()
-         << " : " << m_Server->serverPort() << endl;
-
-    return true;
+    m_Server->start("certs/server-cert.pem", "certs/server-key.enc", myport);
+    connect(m_Server, SIGNAL(sig_newconnection(QSslSocket*)),
+            this, SLOT(slot_addconnection(QSslSocket*)), Qt::UniqueConnection);
+    cout << "FugaContacts: Started server on port " << m_Server->serverPort() << endl;
 }
 
 // handle connection errors
@@ -64,12 +55,9 @@ void FugaContacts::handleError(QAbstractSocket::SocketError in_error) {
 }
 
 // add pending connection
-void FugaContacts::addPendingConnection () {
-    cout << "Someone connected to me!" << endl;
-
-    // add pending connection
-    QTcpSocket* socket = m_Server->nextPendingConnection();
-    FugaContact* newcontact = new FugaContact(m_Fuga, socket);
+void FugaContacts::slot_addconnection(QSslSocket* in_socket) {
+    cout << "Someone connected to me using SSL!" << endl;
+    FugaContact* newcontact = new FugaContact(m_Fuga, in_socket);
     connect(newcontact,SIGNAL(sig_hereiam(FugaContact*,std::string)),
             this,SLOT(slot_add_hereiam(FugaContact*,std::string)), Qt::UniqueConnection);
 }

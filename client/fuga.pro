@@ -23,7 +23,8 @@ HEADERS = \
     src/FugaVideo.h \
     src/FugaStreamer.h \
     src/FugaMe.h \
-    src/FugaChat.h
+    src/FugaChat.h \
+    src/FugaSslServer.h
 SOURCES = src/main.cpp \
     src/FugaConfig.cpp \
     src/FugaHelperFuncs.cpp \
@@ -36,7 +37,8 @@ SOURCES = src/main.cpp \
     src/FugaStreamer.cpp \
     src/FugaVideo.cpp \
     src/FugaMe.cpp \
-    src/FugaChat.cpp
+    src/FugaChat.cpp \
+    src/FugaSslServer.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig

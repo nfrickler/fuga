@@ -21,6 +21,7 @@ my $DEBUG = 1;
 package FugaServer;
 use FugaConnection;
 use IO::Socket;
+use IO::Socket::SSL;
 use IO::Select;
 
 require Exporter;
@@ -53,14 +54,17 @@ sub start {
 
     # start socket
     print "Start socket on ".$self->{host}." and ".$self->{port}."\n";
-    $self->{'socket'} = new IO::Socket::INET(
+    $self->{socket} = IO::Socket::SSL->new(
 	LocalHost => $self->{host},
 	LocalPort => $self->{port},
 	Proto => 'tcp',
 	Listen => 1,
 	Reuse => 1,
+	SSL_verify_mode => 0x00,
+	SSL_passwd_cb => sub {return "bluebell"},
 	Blocking => 0
-    ) or die "Failed to open socket ($!)";
+	#  ) or die "Failed to open socket ($!)";
+) or die "unable to create socket: ", &IO::Socket::SSL::errstr, "\n";
 
     # start listening
     $self->{'to_read'} = new IO::Select();

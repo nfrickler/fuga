@@ -19,7 +19,7 @@ FugaContact::FugaContact(Fuga* in_Fuga, std::string in_name)
     if (in_name != "root") resolve();
 }
 
-FugaContact::FugaContact(Fuga* in_Fuga, QTcpSocket* in_socket)
+FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket)
     : m_Fuga(in_Fuga),
       m_socket(in_socket)
 {
@@ -30,7 +30,8 @@ FugaContact::FugaContact(Fuga* in_Fuga, QTcpSocket* in_socket)
     m_Streamer = NULL;
 
     connectSocket();
-    doFetch();
+    m_socket->startServerEncryption();
+   // doFetch();
 }
 
 // ############################# accessors ########################
@@ -147,8 +148,8 @@ void FugaContact::doConnect() {
     }
 
     // start new socket
-    m_socket = new QTcpSocket(0);
-    m_socket->connectToHost(*m_tcp_ip, m_tcp_port);
+    m_socket = new QSslSocket(0);
+    m_socket->connectToHostEncrypted(m_tcp_ip->toString(), m_tcp_port);
     cout << "FugaContact: Start socket to: "
          << m_tcp_ip->toString().toAscii().data() << " : " << m_tcp_port << endl;
 
@@ -158,9 +159,11 @@ void FugaContact::doConnect() {
 // connect signals to socket
 void FugaContact::connectSocket() {
     if (m_socket == NULL) return;
+    connect(m_socket, SIGNAL(sslErrors(const QList<QSslError> &)),
+            this, SLOT(slot_sslerror(const QList<QSslError> &)));
     connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
         this, SLOT(slot_handleError(QAbstractSocket::SocketError)),Qt::UniqueConnection);
-    connect(m_socket, SIGNAL(connected()), this, SLOT(slot_connected()),Qt::UniqueConnection);
+    connect(m_socket, SIGNAL(encrypted()), this, SLOT(slot_connected()),Qt::UniqueConnection);
     connect(m_socket, SIGNAL(readyRead()), this, SLOT(slot_received()),Qt::UniqueConnection);
     connect(m_socket, SIGNAL(disconnected()), m_socket, SLOT(deleteLater()),Qt::UniqueConnection);
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
@@ -211,6 +214,7 @@ void FugaContact::sendBuffer() {
 
 // slot to receive waiting data
 void FugaContact::slot_received () {
+    cout << "FugaContact: Received sth!" << endl;
 
     // read from socket
     if (m_socket == NULL || !m_socket->bytesAvailable()) return;
@@ -270,7 +274,14 @@ void FugaContact::slot_connected() {
 
 // handle errors
 void FugaContact::slot_handleError(QAbstractSocket::SocketError in_error) {
-    cout << "FugaContact: Connection error:" << in_error << endl;
+    cout << "FugaContact: Connection error:" << in_error
+         << " string: " << m_socket->errorString().toAscii().data() << endl;
+}
+
+// handle ssl errors
+void FugaContact::slot_sslerror(const QList<QSslError> &) {
+    cout << "FugaContact: SSL errors" << endl;
+    m_socket->ignoreSslErrors();
 }
 
 // ########################## me - client  #############################

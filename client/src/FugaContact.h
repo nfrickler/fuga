@@ -19,7 +19,7 @@ class FugaContact : public QObject {
 
     public:
         FugaContact(Fuga* in_Fuga, std::string in_name);
-        FugaContact(Fuga* in_Fuga, QTcpSocket* in_socket);
+        FugaContact(Fuga* in_Fuga, QSslSocket* in_socket);
         std::string     name();
         QHostAddress*   udp_ip();
         bool            udp_ip(QHostAddress* in_ip);
@@ -68,7 +68,7 @@ class FugaContact : public QObject {
 
         std::map<std::string,std::string> m_data;
 
-        QTcpSocket*		m_socket;
+        QSslSocket*		m_socket;
         quint16			m_tcp_port;
         QHostAddress*	m_tcp_ip;
         std::string		m_buffer;
@@ -94,6 +94,7 @@ class FugaContact : public QObject {
         void slot_received();
         void slot_doAnswer(std::string in_type,std::vector<std::string> in_data);
         void slot_fetch(std::string in_type,std::vector<std::string> in_data);
+        void slot_sslerror(const QList<QSslError> &);
 };
 
 #endif // FUGACONTACT_H
