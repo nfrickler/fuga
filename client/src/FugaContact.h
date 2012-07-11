@@ -21,22 +21,6 @@ class FugaContact : public QObject {
         FugaContact(Fuga* in_Fuga, std::string in_name);
         FugaContact(Fuga* in_Fuga, QSslSocket* in_socket);
         std::string     name();
-        QHostAddress*   udp_ip();
-        bool            udp_ip(QHostAddress* in_ip);
-        quint16			udp_port();
-        bool            udp_port(quint16 in_port);
-        quint16			img_width();
-        bool            img_width(quint16 in_width);
-        quint16			img_height();
-        bool            img_height(quint16 in_height);
-        QTcpSocket*		tcp_socket();
-        bool    		tcp_socket(QTcpSocket in_socket);
-        quint16			tcp_port();
-        bool            tcp_port(quint16 in_port);
-        QHostAddress*	tcp_ip();
-        bool            tcp_ip(QHostAddress* in_ip);
-        std::string		tcp_buffer();
-        bool            tcp_buffer(std::string in_buffer);
         FugaVideo*      Video();
         FugaStreamer*   Streamer();
 
@@ -62,9 +46,7 @@ class FugaContact : public QObject {
 
         std::string     m_name;
         QHostAddress*	m_udp_ip;
-        quint16			m_udp_port;
-        quint16			m_img_width;
-        quint16			m_img_height;
+        quint16			m_udp_firstport;
 
         std::map<std::string,std::string> m_data;
 
@@ -73,7 +55,6 @@ class FugaContact : public QObject {
         QHostAddress*	m_tcp_ip;
         std::string		m_buffer;
 
-        FugaVideo*      m_Video;
         FugaStreamer*   m_Streamer;
 
         void getInfos();

@@ -12,7 +12,7 @@ class FugaVideo : public QWidget {
 	Q_OBJECT
 
 	public:
-        FugaVideo(QHostAddress* in_address, quint16 in_port);
+        FugaVideo(QHostAddress* in_ip, quint16 in_firstport);
 		void resizeEvent(QResizeEvent *e);
         ~FugaVideo();
 		void start();
@@ -24,9 +24,9 @@ class FugaVideo : public QWidget {
 		GstElement* m_pipeline;
         GstElement* m_xvimagesink;
 
-		// sizes
-		QHostAddress* m_address;
-		quint16 m_port;
+        // connection
+        QHostAddress* m_ip;
+        quint16 m_firstport;
 };
 
 #endif // __FugaVideo_H__

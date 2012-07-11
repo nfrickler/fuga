@@ -14,11 +14,11 @@ GstElement* m_rtph263pdepay;
 
 
 // constructor
-FugaVideo::FugaVideo(QHostAddress* in_address, quint16 in_port) {
+FugaVideo::FugaVideo(QHostAddress* in_ip, quint16 in_firstport) {
 
 	// init
-	m_address = in_address;
-    m_port = in_port;
+    m_ip = in_ip;
+    m_firstport = in_firstport;
 
 	// init pipeline
     setAttribute(Qt::WA_NativeWindow,true);
@@ -62,16 +62,20 @@ void FugaVideo::init() {
 
 	// udp -> video
 	GstElement* udpsrc_v0 = gst_element_factory_make ("udpsrc", "udpsrc_v0");
-	g_object_set (G_OBJECT(udpsrc_v0), "port", 5000, NULL);
+    g_object_set (G_OBJECT(udpsrc_v0), "port", m_firstport, NULL);
 	GstCaps* v_caps = gst_caps_from_string ("application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H263-1998");
 	g_object_set (udpsrc_v0, "caps", v_caps, NULL);
 	gst_caps_unref (v_caps);
 
 	// video rtcp-handling
 	GstElement* udpsrc_v1 = gst_element_factory_make ("udpsrc", "udpsrc_v1");
-	g_object_set (G_OBJECT(udpsrc_v1), "port", 5001, NULL);
+    g_object_set (G_OBJECT(udpsrc_v1), "port", (m_firstport+1), NULL);
 	GstElement* udpsink_v2 = gst_element_factory_make ("udpsink", "udpsink_v2");
-	g_object_set (G_OBJECT(udpsink_v2), "host", "127.0.0.1", "port", 5005, "sync", FALSE, "async", FALSE, NULL);
+    g_object_set (G_OBJECT(udpsink_v2),
+                  "host", "127.0.0.1",
+                  "port", (m_firstport+4),
+                  "sync", FALSE,
+                  "async", FALSE, NULL);
 
 	gst_bin_add_many(GST_BIN (m_pipeline), udpsrc_v0, udpsrc_v1, udpsink_v2, NULL);
 
@@ -98,16 +102,20 @@ void FugaVideo::init() {
 
 	// udp -> audio
 	GstElement* udpsrc_a0 = gst_element_factory_make ("udpsrc", "udpsrc_a0");
-	g_object_set (G_OBJECT(udpsrc_a0), "port", 5002, NULL);
+    g_object_set (G_OBJECT(udpsrc_a0), "port", (m_firstport+2), NULL);
 	GstCaps* a_caps = gst_caps_from_string ("application/x-rtp,media=(string)audio,clock-rate=(int)8000,encoding-name=(string)AMR,encoding-params=(string)1,octet-align=(string)1");
 	g_object_set (udpsrc_a0, "caps", a_caps, NULL);
 	gst_caps_unref (a_caps);
 
 	// audio rtcp-handling
 	GstElement* udpsrc_a1 = gst_element_factory_make ("udpsrc", "udpsrc_a1");
-	g_object_set (G_OBJECT(udpsrc_a1), "port", 5003, NULL);
+    g_object_set (G_OBJECT(udpsrc_a1), "port", (m_firstport+3), NULL);
 	GstElement* udpsink_a2 = gst_element_factory_make ("udpsink", "udpsink_a2");
-	g_object_set (G_OBJECT(udpsink_a2), "host", "127.0.0.1", "port", 5007, "sync", FALSE, "async", FALSE, NULL);
+    g_object_set (G_OBJECT(udpsink_a2),
+                  "host", "127.0.0.1",
+                  "port", (m_firstport+5),
+                  "sync", FALSE,
+                  "async", FALSE, NULL);
 
 	gst_bin_add_many(GST_BIN (m_pipeline), udpsrc_a0, udpsrc_a1, udpsink_a2, NULL);
 
@@ -164,10 +172,8 @@ void FugaVideo::start() {
 // stop pipeline
 void FugaVideo::stop () {
 	gst_element_set_state (m_pipeline, GST_STATE_NULL);
-	g_object_unref(m_xvimagesink);
-	g_object_unref(m_rtpamrdepay);
-	g_object_unref(m_rtph263pdepay);
-	g_object_unref(m_pipeline);
+    g_object_unref(m_xvimagesink);
+    g_object_unref(m_pipeline);
 }
 
 // get messages/errors from gstreamer
@@ -208,10 +214,10 @@ gboolean on_sink_message_listener (GstBus* bus, GstMessage* message, GstElement*
 // add pads dynamically
 static void pad_added_cb (GstElement* rtpbin, GstPad* new_pad, GstElement* depay) {
     g_print ("FugaVideo: New rtp-pad: %s\n", GST_PAD_NAME (new_pad));
-    gchar* myname = g_str_copy_substr(GST_PAD_NAME (new_pad), 0, 14);
 
     // get pad to connect to
-    depay = (g_strcasecmp(myname, "recv_rtp_src_1") == 0) ? m_rtpamrdepay : m_rtph263pdepay ;
+    depay = (g_ascii_strncasecmp(GST_PAD_NAME (new_pad), "recv_rtp_src_1", 14) == 0)
+        ? m_rtpamrdepay : m_rtph263pdepay ;
     GstPad* sinkpad = gst_element_get_static_pad (depay, "sink");
     g_assert (sinkpad);
 

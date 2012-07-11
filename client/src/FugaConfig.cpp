@@ -76,6 +76,7 @@ void FugaConfig::_readConfig() {
 
 		// save in obj-vars
 		m_config[parts[0]] = parts[1];
+        cout << "FugaConfig: " << parts[0] << " = " << parts[1] << endl;
 	}
 
 	// close file
@@ -83,13 +84,9 @@ void FugaConfig::_readConfig() {
 
 	// set defaults
 	if (m_config.find("udp_ip") == m_config.end()) m_config["udp_ip"] = "127.0.0.1";
-	if (m_config.find("udp_port") == m_config.end()) m_config["udp_port"] = "7878";
-	if (m_config.find("udp_mtu") == m_config.end()) m_config["udp_mtu"] = "500";
-	if (m_config.find("udp_quality") == m_config.end()) m_config["udp_quality"] = "80";
+    if (m_config.find("udp_firstport") == m_config.end()) m_config["udp_firstport"] = "7878";
 	if (m_config.find("tcp_ip") == m_config.end()) m_config["tcp_ip"] = "127.0.0.1";
-	if (m_config.find("tcp_port") == m_config.end()) m_config["tcp_port"] = "7979";
-	if (m_config.find("img_width") == m_config.end()) m_config["img_width"] = "320";
-	if (m_config.find("img_height") == m_config.end()) m_config["img_height"] = "240";
+    if (m_config.find("tcp_port") == m_config.end()) m_config["tcp_port"] = "7979";
 	if (m_config.find("root_ip") == m_config.end()) m_config["root_ip"] = "127.0.0.1";
 	if (m_config.find("root_port") == m_config.end()) m_config["root_port"] = "7777";
     //if (m_config.find("video_path") == m_config.end()) m_config["video_path"] = "test.mp4";

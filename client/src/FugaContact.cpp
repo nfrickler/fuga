@@ -13,7 +13,7 @@ FugaContact::FugaContact(Fuga* in_Fuga, std::string in_name)
     m_tcp_ip = NULL;
     m_tcp_port = 0;
     m_udp_ip = NULL;
-    m_udp_port = 0;
+    m_udp_firstport = 0;
     m_Streamer = NULL;
 
     if (in_name != "root") resolve();
@@ -26,7 +26,7 @@ FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket)
     m_tcp_ip = NULL;
     m_tcp_port = 0;
     m_udp_ip = NULL;
-    m_udp_port = 0;
+    m_udp_firstport = 0;
     m_Streamer = NULL;
 
     connectSocket();
@@ -38,38 +38,6 @@ FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket)
 
 std::string FugaContact::name() {
     return (isFetched()) ? m_name : NULL;
-}
-
-QHostAddress* FugaContact::udp_ip() {
-    return (isFetched()) ? m_udp_ip : NULL;
-}
-
-quint16 FugaContact::udp_port() {
-    return (isFetched()) ? m_udp_port : 0;
-}
-
-quint16	FugaContact::img_width() {
-    return (isFetched()) ? m_img_width : 0;
-}
-
-quint16	FugaContact::img_height() {
-    return (isFetched()) ? m_img_height : 0;
-}
-
-QTcpSocket*	FugaContact::tcp_socket() {
-    return (isFetched()) ? m_socket : NULL;
-}
-
-quint16	FugaContact::tcp_port() {
-    return (isFetched()) ? m_tcp_port : 0;
-}
-
-QHostAddress* FugaContact::tcp_ip() {
-    return (isFetched()) ? m_tcp_ip : 0;
-}
-
-std::string	FugaContact::tcp_buffer() {
-    return (isFetched()) ? m_buffer : 0;
 }
 
 // ############################# streaming ########################
@@ -84,10 +52,8 @@ bool FugaContact::startStreaming() {
 
     // create new streamer
     m_Streamer = new FugaStreamer(
-        m_udp_ip,
-        m_Fuga->getConfig()->getInt("udp_port"),
-        m_Fuga->getConfig()->getInt("img_width"),
-        m_Fuga->getConfig()->getInt("img_height"),
+        new QHostAddress(m_Fuga->getConfig()->getConfig("udp_ip").c_str()),
+        m_Fuga->getConfig()->getInt("udp_firstport"),
         m_Fuga->getConfig()->getConfig("video_path")
     );
     m_Streamer->start();
@@ -99,12 +65,9 @@ bool FugaContact::startStreaming() {
 }
 
 bool FugaContact::stopStreaming() {
-
-    if (m_Streamer != NULL) {
-        delete m_Streamer;
-        m_Streamer = NULL;
-    }
-
+    if (m_Streamer == NULL) return true;
+    delete m_Streamer;
+    m_Streamer = NULL;
     return true;
 }
 
@@ -116,7 +79,7 @@ FugaVideo* FugaContact::Video() {
     // create new streamer
     FugaVideo* video = new FugaVideo(
         m_udp_ip,
-        m_udp_port
+        m_udp_firstport
     );
 
     return video;
@@ -180,7 +143,7 @@ bool FugaContact::isConnected() {
 
 // do we have fetched the udp data of other client?
 bool FugaContact::isFetched() {
-    return (m_udp_ip == NULL) ? false : true;
+    return (m_udp_firstport == 0) ? false : true;
 }
 
 // ############################# send data ########################
@@ -302,7 +265,7 @@ void FugaContact::slot_fetch(string in_type, vector<string> in_data) {
     if (in_type == "a_udpdata_ok") {
         if (m_name == "") m_name = in_data[0];
         m_udp_ip = new QHostAddress(in_data[1].c_str());
-        m_udp_port = string2quint16(in_data[2]);
+        m_udp_firstport = string2quint16(in_data[2]);
         disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
                    this, SLOT(slot_fetch(std::string,std::vector<std::string>)));
         emit sig_hereiam(this,m_name);
@@ -329,10 +292,9 @@ void FugaContact::slot_doAnswer(string in_type,vector<string> in_data) {
             return;
         }
         QHostAddress udpip = QHostAddress(m_Fuga->getConfig()->getConfig("udp_ip").c_str());
-        quint16 udpport = m_Fuga->getConfig()->getInt("udp_port");
+        quint16 udpport = m_Fuga->getConfig()->getInt("udp_firstport");
         ss << "a_udpdata_ok-" << Me->name() << ","
            << udpip.toString().toAscii().data() << "," << udpport << ";";
         send(ss.str());
     }
-
 }
