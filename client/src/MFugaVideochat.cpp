@@ -19,6 +19,13 @@ MFugaVideochat::MFugaVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
 	askForPerson();
 }
 
+// destructor
+MFugaVideochat::~MFugaVideochat() {
+    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
+    if (Partner) Partner->stopStreaming();
+    if (m_Chat) delete m_Chat;
+}
+
 // show input-fields for person
 void MFugaVideochat::askForPerson () {
 
@@ -56,18 +63,27 @@ void MFugaVideochat::askForPerson () {
 void MFugaVideochat::setConnectionData () {
 
     // load contact
-    m_Contact = m_Fuga->getContacts()->getContact(m_name_input->text().toStdString());
+    m_partner = m_name_input->text().toStdString();
+    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
+
+    // user exists?
+    if (Partner->isAccepted() && Partner->isFetched()) {
+        showVideo();
+        return;
+    }
 
     // wait for videoReady
-    connect(m_Contact, SIGNAL(sig_fetched()), this, SLOT(slot_showVideo()));
-	m_timer = new QTimer();
+    connect(m_Fuga->getContacts(), SIGNAL(sig_connected(std::string)),
+            this, SLOT(slot_showVideo(std::string)));
+    m_timer = new QTimer();
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(slot_videoFailed()));
 	m_timer->start(10000);
 }
 
 // video is ready, we have fetched all data
-void MFugaVideochat::slot_showVideo () {
-    m_timer->stop();
+void MFugaVideochat::slot_showVideo (std::string in_name) {
+    if (in_name != m_partner) return;
+    if (m_timer) m_timer->stop();
     showVideo();
 }
 
@@ -79,9 +95,12 @@ void MFugaVideochat::slot_videoFailed () {
 
 // show videochat
 void MFugaVideochat::showVideo () {
+    cout << "MFugaVideochat: Contact ready. Start!" << endl;
+
+    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
 
     // start streaming
-    m_Contact->startStreaming();
+    Partner->startStreaming();
 
 	// create new central Widget
 	delete m_main_window->centralWidget();
@@ -90,23 +109,24 @@ void MFugaVideochat::showVideo () {
 
 	// create label for video
 	stringstream webcam_label("");
-    webcam_label << "Webcam von " << m_Contact->name();
+    webcam_label << "Webcam von " << Partner->name();
 	QLabel* mylabel = new QLabel(tr(webcam_label.str().c_str()));
 	mylabel->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Maximum));
 
 	// create myvideo
-    FugaVideo* othercam = m_Contact->Video();
+    FugaVideo* othercam = Partner->Video();
 	if (othercam == NULL) {
         showError("Could not start Video!");
-        m_Fuga->getWindow()->showSelection();
+        Partner->stopStreaming();
+        m_Fuga->slot_mode_select();
 		return;
 	}
 	othercam->setStyleSheet("background:#000;");
 	othercam->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding));
 
 	// create chat
-	vector<string> partner;
-    partner.push_back(m_Contact->name());
+    vector<string> partner;
+    partner.push_back(Partner->name());
     m_Chat = new FugaChat(m_Fuga, m_Fuga->getMe()->name(), partner);
     m_Chat->setStyleSheet("background:#222;");
 

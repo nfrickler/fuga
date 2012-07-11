@@ -28,10 +28,8 @@ FugaChat::FugaChat (Fuga* in_Fuga, string myname, vector<string> mypartners) {
     connect(m_input, SIGNAL(returnPressed()), this, SLOT(slot_send()), Qt::UniqueConnection);
 
     // connect partners
-    for (vector<string>::iterator i = m_partners.begin(); i != m_partners.end(); ++i) {
-        connect(m_Fuga->getContacts()->getContact(*i), SIGNAL(sig_received(std::string,std::vector<std::string>)),
-                this, SLOT(slot_receive(std::string,std::vector<std::string>)), Qt::UniqueConnection);
-    }
+    connect(m_Fuga->getContacts(), SIGNAL(sig_received(std::string,std::string,std::vector<std::string>)),
+            this, SLOT(slot_receive(std::string,std::string,std::vector<std::string>)), Qt::UniqueConnection);
 
 	// layout
 	QVBoxLayout *my_layout = new QVBoxLayout();
@@ -51,7 +49,7 @@ void FugaChat::slot_send() {
 
 	// send message to all partners
 	stringstream out ("");
-	out << "m_chat_msg-" << m_name << "|" << msg << ";";
+    out << "m_chat_msg-" << m_name << "," << msg << ";";
 	for (vector<string>::iterator i = m_partners.begin(); i != m_partners.end(); ++i) {
         m_Fuga->getContacts()->getContact(*i)->send(out.str());
 	}
@@ -64,8 +62,8 @@ void FugaChat::slot_send() {
 }
 
 // get new messages of contacts
-void FugaChat::slot_receive (std::string in_type, std::vector<std::string> in_data) {
-    if (in_type.compare("chat") != 0) return;
+void FugaChat::slot_receive (std::string in_name, std::string in_type, std::vector<std::string> in_data) {
+    if (in_type.compare("m_chat_msg") != 0) return;
     if (in_data.size() != 2) return;
 
     addMsg(in_data[0], in_data[1]);

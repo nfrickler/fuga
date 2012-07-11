@@ -9,7 +9,6 @@ static void streamer_pad_added_cb (GstElement* rtpbin, GstPad* new_pad, FugaStre
 
 // constructor
 FugaStreamer::FugaStreamer (QHostAddress* in_ip, quint16 in_firstport, string in_path) {
-    cout << "FugaStreamer: construct it" << endl;
 
 	// save input
     m_ip = in_ip;
@@ -37,7 +36,6 @@ FugaStreamer::~FugaStreamer () {
 				   udpsrc port=5007 ! rtpbin.recv_rtcp_sink_1
  */
 void FugaStreamer::start () {
-    cout << "FugaStreamer: creating pipeline..." << endl;
 
     // pipeline
     GstElement* m_pipeline;
@@ -179,7 +177,6 @@ void FugaStreamer::start () {
         cout << "FugaStreamer: Error on setting up pipeline." << endl;
 		return;
 	}
-    cout << "FugaStreamer: pipeline created" << endl;
 
 	// add signalhandler for bus messages
 	GstBus* bus = gst_element_get_bus (m_pipeline);
@@ -187,12 +184,16 @@ void FugaStreamer::start () {
 	gst_object_unref (bus);
 
 	// play!
+    cout << "FugaStreamer: Start streaming on "
+         << m_ip->toString().toAscii().data() << " : "
+         << m_firstport << endl;
 	gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
 }
 
 // stop streaming
 void FugaStreamer::stop()  {
     cout << "FugaStreamer: Stop streaming." << endl;
+    if (m_pipeline) return;
 
 	// stop pipeline
 	gst_element_set_state (m_pipeline, GST_STATE_NULL);
@@ -211,9 +212,9 @@ GstElement* FugaStreamer::getAudiohandler () {
 
 // get messages/errors from gstreamer
 gboolean on_sink_message (GstBus* bus, GstMessage* message) {
-    cout << "FugaStreamer: Bus Message ("
-              << GST_MESSAGE_TYPE_NAME(message)
-              << ")..." << endl;
+    //cout << "FugaStreamer: Bus Message ("
+    //          << GST_MESSAGE_TYPE_NAME(message)
+    //          << ")..." << endl;
 
 	switch (GST_MESSAGE_TYPE (message)) {
 		case GST_MESSAGE_EOS:

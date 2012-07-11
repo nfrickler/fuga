@@ -22,12 +22,13 @@ class MFugaVideochat : public QObject {
 	public:
         MFugaVideochat();
         MFugaVideochat(FugaWindow* in_Window, Fuga* in_Fuga);
+        ~MFugaVideochat();
 
 	protected:
         FugaWindow* m_main_window;
         Fuga* m_Fuga;
         QTimer* m_timer;
-        FugaContact* m_Contact;
+        std::string m_partner;
 
 		void askForPerson();
 		void showVideo();
@@ -40,7 +41,7 @@ class MFugaVideochat : public QObject {
 
     public slots:
 		void setConnectionData();
-        void slot_showVideo();
+        void slot_showVideo(std::string);
         void slot_videoFailed();
 
 };

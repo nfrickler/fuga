@@ -12,6 +12,8 @@ Fuga::Fuga() {
     m_Window = new FugaWindow(this);
     m_Contacts = new FugaContacts(this);
 
+    m_selected = NULL;
+
     // start login process
     slot_mode_login();
 }
@@ -57,7 +59,7 @@ void Fuga::mode_module () {
     cout << "Fuga: Enter module mode" << endl;
 
     // get videochat-object
-    new MFugaVideochat(getWindow(), this);
+    m_selected = new MFugaVideochat(getWindow(), this);
 }
 
 // are we logged in?
@@ -96,6 +98,7 @@ FugaMe* Fuga::getMe() {
 
 // back to login mode (aka logout)
 void Fuga::slot_mode_login() {
+    if (m_selected) delete m_selected;
     m_selected = NULL;
     m_loggedin = false;
     run();
@@ -163,7 +166,9 @@ void Fuga::slot_checklogin(int in_return) {
 
 // back to select mode
 void Fuga::slot_mode_select() {
+    if (m_selected) delete m_selected;
     m_selected = NULL;
+    cout << "Fuga slot_mode_select ok" << endl;
     run();
 }
 

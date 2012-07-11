@@ -33,7 +33,6 @@ FugaVideo::~FugaVideo() {
 
 // resize event
 void FugaVideo::resizeEvent(QResizeEvent *e) {
-	cout << "Do resize!" << endl;
 	QSize size(4,3);
 	size.scale(e->size().width(),e->size().height(),Qt::KeepAspectRatio);
 	if (size != this->size()) resize(size);
@@ -54,6 +53,9 @@ void FugaVideo::resizeEvent(QResizeEvent *e) {
 	  rtpbin.send_rtcp_src_1 ! udpsink port=5007 sync=false async=false
  */
 void FugaVideo::init() {
+    cout << "FugaVideo: Init pipeline of Video on "
+         << m_ip->toString().toAscii().data()
+         << " : " << m_firstport << endl;
 
 	// pipeline
 	m_pipeline = gst_pipeline_new ("mypipeline");

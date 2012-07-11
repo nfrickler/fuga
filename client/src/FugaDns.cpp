@@ -28,6 +28,14 @@ void FugaDns::doConnect() {
     FugaContact::doConnect();
 }
 
+// we are connected
+void FugaDns::slot_connected() {
+    cout << "FugaContact: slot_connected to " << m_name << endl;
+    sendBuffer();
+    emit sig_connected();
+    emit sig_accepted();
+}
+
 // send request to server to resolve username
 bool FugaDns::resolve(std::string in_name) {
     stringstream msg("");

@@ -34,7 +34,7 @@ class FugaChat : public QWidget {
         void slot_send();
 
 	public slots:
-        void slot_receive (std::string in_type, std::vector<std::string> in_data);
+        void slot_receive (std::string,std::string,std::vector<std::string>);
 
 };
 

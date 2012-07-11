@@ -6,7 +6,6 @@ using namespace std;
 // constructor
 FugaContacts::FugaContacts (Fuga* in_Fuga) {
     m_Fuga = in_Fuga;
-	m_mutex = new QMutex();
     m_Dns = NULL;
 
     // start server
@@ -26,15 +25,40 @@ FugaContact* FugaContacts::getContact(string in_name) {
     if (!isContact(in_name)) {
         cout << "FugaContacts: Create new Contact" << endl;
         m_contacts[in_name] = new FugaContact(m_Fuga, in_name);
+        connectContact(m_contacts[in_name]);
     }
 
     return m_contacts[in_name];
+}
+
+// connect Contact's signals to my slots
+void FugaContacts::connectContact(FugaContact* in_Contact) {
+    connect(in_Contact, SIGNAL(sig_accepted()),this,SLOT(slot_con_connected()));
+    connect(in_Contact, SIGNAL(sig_disconnected()),this,SLOT(slot_con_disconnected()));
+    connect(in_Contact,SIGNAL(sig_received(std::string,std::vector<std::string>)),
+            this,SLOT(slot_con_received(std::string,std::vector<std::string>)));
 }
 
 // do we have contact to person xyz?
 bool FugaContacts::isContact (string in_name) {
     map<string,FugaContact*>::const_iterator it = m_contacts.find(in_name);
     return it!=m_contacts.end();
+}
+
+// register new contact
+bool FugaContacts::registerContact(FugaContact* in_Contact) {
+
+    // user already exists?
+    if (isContact(in_Contact->name())) {
+        // Contact already exists!
+        cout << "FugaContacts: Contact already exists => DELETE" << endl;
+        return false;
+    }
+
+    // register
+    m_contacts[in_Contact->name()] = in_Contact;
+
+    return true;
 }
 
 // ########################### server ############################
@@ -49,31 +73,14 @@ void FugaContacts::startServer() {
     cout << "FugaContacts: Started server on port " << m_Server->serverPort() << endl;
 }
 
-// handle connection errors
-void FugaContacts::handleError(QAbstractSocket::SocketError in_error) {
-    cout << "FugaTcp: Connection error:" << in_error << endl;
-}
-
 // add pending connection
 void FugaContacts::slot_addconnection(QSslSocket* in_socket) {
     cout << "Someone connected to me using SSL!" << endl;
     FugaContact* newcontact = new FugaContact(m_Fuga, in_socket);
-    connect(newcontact,SIGNAL(sig_hereiam(FugaContact*,std::string)),
-            this,SLOT(slot_add_hereiam(FugaContact*,std::string)), Qt::UniqueConnection);
+    connectContact(newcontact);
 }
 
-// add FugaContact to list
-void FugaContacts::slot_add_hereiam(FugaContact* in_Contact,std::string in_name) {
-    if (!isContact(in_name)) m_contacts[in_name] = in_Contact;
-    // TODO: if it already exists...!
-}
-
-// handle errors
-void FugaContacts::slot_handleError(QAbstractSocket::SocketError in_error) {
-    cout << "FugaContact: Connection error:" << in_error << endl;
-}
-
-// ########################## misc ###########################
+// ########################## dns ###########################
 
 // get FugaDns object
 FugaDns* FugaContacts::getDns() {
@@ -81,4 +88,19 @@ FugaDns* FugaContacts::getDns() {
     return m_Dns;
 }
 
-// ######################### handle m_waiting ##################
+// ####################### handle signals of Contacts ##################
+
+void FugaContacts::slot_con_received(std::string in_type, std::vector<std::string> in_data) {
+    FugaContact* sender = (FugaContact*) QObject::sender();
+    if (!sender->isAccepted()) return;
+    emit sig_received(sender->name(),in_type,in_data);
+}
+void FugaContacts::slot_con_connected() {
+    cout << "FugaContacts: is connected" << endl;
+    FugaContact* sender = (FugaContact*) QObject::sender();
+    emit sig_connected(sender->name());
+}
+void FugaContacts::slot_con_disconnected() {
+    FugaContact* sender = (FugaContact*) QObject::sender();
+    emit sig_disconnected(sender->name());
+}

@@ -1,7 +1,6 @@
 #ifndef FUGA_H
 #define FUGA_H
 
-
 #include "FugaDns.h"
 #include "FugaMe.h"
 #include "FugaContacts.h"
@@ -12,6 +11,7 @@
 #include "FugaContacts.h"
 #include <iostream>
 
+class MFugaVideochat;
 class FugaConfig;
 class FugaWindow;
 class FugaContacts;
@@ -41,7 +41,7 @@ class Fuga : public QObject {
         std::string m_password;
 
         bool m_loggedin;
-        FugaModule* m_selected;
+        MFugaVideochat* m_selected;
 
         void mode_login();
         void doLogin();

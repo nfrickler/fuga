@@ -4,11 +4,9 @@
 #include "FugaDns.h"
 #include "FugaContact.h"
 #include "FugaSslServer.h"
-#include <QMutex>
 #include <map>
 #include <iostream>
 #include <sstream>
-#include <QTcpServer>
 
 class Fuga;
 
@@ -19,22 +17,29 @@ class FugaContacts : public QObject {
         FugaContacts(Fuga* in_Fuga);
         FugaContact* getContact(std::string in_name);
         bool isContact(std::string name);
-        void handleError(QAbstractSocket::SocketError in_error);
         FugaDns* getDns();
+        bool registerContact(FugaContact* in_Contact);
+        void connectContact (FugaContact* in_Contact);
 
 	protected:
         Fuga* m_Fuga;
         FugaDns* m_Dns;
         FugaSslServer* m_Server;
         std::map<std::string, FugaContact*> m_contacts;
-		QMutex* m_mutex;
 
         void startServer();
 
+    signals:
+        void sig_received(std::string in_name, std::string in_type, std::vector<std::string> in_data);
+        void sig_connected(std::string in_name);
+        void sig_disconnected(std::string in_name);
+
     public slots:
+        void slot_con_received(std::string in_type, std::vector<std::string> in_data);
+        void slot_con_connected();
+        void slot_con_disconnected();
+
         void slot_addconnection(QSslSocket* in_socket);
-        void slot_handleError(QAbstractSocket::SocketError in_error);
-        void slot_add_hereiam(FugaContact*,std::string);
 };
 
 #endif // __FUGACONTACTS_H__
