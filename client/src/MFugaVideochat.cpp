@@ -1,6 +1,6 @@
 #include "MFugaVideochat.h"
+#include "FugaHelperFuncs.h"
 #include "FugaChat.h"
-#include <QMessageBox>
 #include <iostream>
 #include <sstream>
 
@@ -21,9 +21,7 @@ MFugaVideochat::MFugaVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
 
 // destructor
 MFugaVideochat::~MFugaVideochat() {
-    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
-    if (Partner) Partner->stopStreaming();
-    if (m_Chat) delete m_Chat;
+    if (!m_partner.empty()) doDisconnect();
 }
 
 // show input-fields for person
@@ -75,6 +73,8 @@ void MFugaVideochat::setConnectionData () {
     // wait for videoReady
     connect(m_Fuga->getContacts(), SIGNAL(sig_connected(std::string)),
             this, SLOT(slot_showVideo(std::string)));
+    connect(m_Fuga->getContacts(), SIGNAL(sig_disconnected(std::string)),
+            this, SLOT(slot_disconnected(std::string)));
     m_timer = new QTimer();
 	connect(m_timer, SIGNAL(timeout()), this, SLOT(slot_videoFailed()));
 	m_timer->start(10000);
@@ -117,7 +117,7 @@ void MFugaVideochat::showVideo () {
     FugaVideo* othercam = Partner->Video();
 	if (othercam == NULL) {
         showError("Could not start Video!");
-        Partner->stopStreaming();
+        doDisconnect();
         m_Fuga->slot_mode_select();
 		return;
 	}
@@ -141,3 +141,22 @@ void MFugaVideochat::showVideo () {
 	// start listening
     othercam->start();
 }
+
+// the partner disconnected
+void MFugaVideochat::slot_disconnected(string in_name) {
+    if (in_name != m_partner) return;
+    showError("Der Chatpartner hat den Chat verlassen.");
+    doDisconnect();
+    m_Fuga->slot_mode_select();
+}
+
+// do disconnect
+void MFugaVideochat::doDisconnect() {
+    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
+    disconnect(m_Fuga->getContacts(), SIGNAL(sig_disconnected(std::string)),
+               this, SLOT(slot_disconnected(std::string)));
+    Partner->doDisconnect();
+    m_partner = "";
+    if (m_Chat) delete m_Chat;
+}
+

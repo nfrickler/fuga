@@ -30,7 +30,7 @@ void FugaWindow::drawMenu () {
 
     // back to selection
 	QAction* gotoSelector = new QAction(tr("&Zur Auswahl"),this);
-	gotoSelector->setShortcut(tr("CTRL+Z"));
+    gotoSelector->setShortcut(tr("CTRL+A"));
     connect(gotoSelector, SIGNAL(triggered()), m_Fuga, SLOT(slot_mode_select()), Qt::UniqueConnection);
 	fileMenu->addAction(gotoSelector);
 
@@ -128,7 +128,7 @@ void FugaWindow::slot_clicked_login() {
 // show selection window
 void FugaWindow::showSelection () {
     clearWindows();
-
+    cout << "FugaWindow: Show selection" << endl;
     // init selection
     QLabel *selector_text = new QLabel(QObject::tr("Was möchtest du machen?"));
     QGridLayout *mainLayout = new QGridLayout();

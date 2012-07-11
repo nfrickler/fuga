@@ -33,6 +33,7 @@ class FugaContact : public QObject {
         bool            isFetched();
         void            doAccept();
         bool            isAccepted();
+        void            doDisconnect();
 
     protected:
         Fuga*           m_Fuga;
@@ -74,6 +75,7 @@ class FugaContact : public QObject {
         void slot_connected();
         void slot_fetched(std::string in_type,std::vector<std::string> in_data);
         void slot_accepted();
+        void slot_disconnected();
 
         void slot_received();
         void slot_gotRequest(std::string in_type,std::vector<std::string> in_data);

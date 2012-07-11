@@ -23,6 +23,7 @@ class MFugaVideochat : public QObject {
         MFugaVideochat();
         MFugaVideochat(FugaWindow* in_Window, Fuga* in_Fuga);
         ~MFugaVideochat();
+        void doDisconnect();
 
 	protected:
         FugaWindow* m_main_window;
@@ -31,7 +32,7 @@ class MFugaVideochat : public QObject {
         std::string m_partner;
 
 		void askForPerson();
-		void showVideo();
+        void showVideo();
 
 		// set connection details
 		QLineEdit* m_name_input;
@@ -43,6 +44,7 @@ class MFugaVideochat : public QObject {
 		void setConnectionData();
         void slot_showVideo(std::string);
         void slot_videoFailed();
+        void slot_disconnected(std::string);
 
 };
 

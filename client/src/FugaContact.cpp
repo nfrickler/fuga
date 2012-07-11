@@ -45,7 +45,8 @@ void FugaContact::connectSocket() {
     connect(m_socket, SIGNAL(readyRead()), this, SLOT(slot_received()),Qt::UniqueConnection);
 
     // errors and disconnection
-    connect(m_socket, SIGNAL(disconnected()), m_socket, SLOT(deleteLater()),Qt::UniqueConnection);
+    connect(m_socket, SIGNAL(disconnected()), this, SLOT(slot_disconnected()),Qt::UniqueConnection);
+    connect(this, SIGNAL(sig_disconnected()), m_socket, SLOT(deleteLater()),Qt::UniqueConnection);
     connect(m_socket, SIGNAL(sslErrors(const QList<QSslError> &)),
             this, SLOT(slot_sslerror(const QList<QSslError> &)));
     connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)),
@@ -238,6 +239,17 @@ void FugaContact::slot_accepted() {
 // is this connection to the other client accepted?
 bool FugaContact::isAccepted() {
     return m_isaccepted;
+}
+
+// do disconnect
+void FugaContact::doDisconnect() {
+    slot_disconnected();
+}
+
+// other client disconnected
+void FugaContact::slot_disconnected() {
+    stopStreaming();
+    emit sig_disconnected();
 }
 
 // ############################# send data ########################

@@ -14,6 +14,7 @@ FugaStreamer::FugaStreamer (QHostAddress* in_ip, quint16 in_firstport, string in
     m_ip = in_ip;
     m_firstport = in_firstport;
     m_path = in_path;
+    m_pipeline = NULL;
 
 	return;
 }
@@ -38,7 +39,6 @@ FugaStreamer::~FugaStreamer () {
 void FugaStreamer::start () {
 
     // pipeline
-    GstElement* m_pipeline;
     m_pipeline = gst_pipeline_new("mypipeline");
     g_assert(m_pipeline);
 
@@ -193,13 +193,14 @@ void FugaStreamer::start () {
 // stop streaming
 void FugaStreamer::stop()  {
     cout << "FugaStreamer: Stop streaming." << endl;
-    if (m_pipeline) return;
-
+    if (m_pipeline == NULL) return;
+cout << "FugaStreamer: stopped0" << endl;
 	// stop pipeline
-	gst_element_set_state (m_pipeline, GST_STATE_NULL);
-
+    gst_element_set_state(m_pipeline, GST_STATE_NULL);
+    cout << "FugaStreamer: stopped1" << endl;
 	// free
     gst_object_unref(m_pipeline);
+    m_pipeline = NULL;
 }
 
 GstElement* FugaStreamer::getVideohandler () {
@@ -254,8 +255,6 @@ static void streamer_pad_added_cb (GstElement* bin, GstPad* new_pad, FugaStreame
     g_assert(str);
     const gchar* c = gst_structure_get_name(str);
     g_print("FugaStreamer: New decodebin-pad with caps-type: %s\n", c);
-
-  //  if (g_strrstr(c, "audio")) return;
 
     // get pad to connect to
     GstElement* depay = (g_strrstr(c, "video")) ? Streamer->getVideohandler() : Streamer->getAudiohandler();

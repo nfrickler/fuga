@@ -103,4 +103,5 @@ void FugaContacts::slot_con_connected() {
 void FugaContacts::slot_con_disconnected() {
     FugaContact* sender = (FugaContact*) QObject::sender();
     emit sig_disconnected(sender->name());
+    m_contacts.erase(sender->name());
 }
