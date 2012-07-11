@@ -4,11 +4,13 @@
 #include "FugaDns.h"
 #include "FugaContact.h"
 #include "FugaSslServer.h"
+#include "FugaCrypto.h"
 #include <map>
 #include <iostream>
 #include <sstream>
 
 class Fuga;
+class FugaCrypto;
 
 class FugaContacts : public QObject {
 	Q_OBJECT
@@ -23,6 +25,7 @@ class FugaContacts : public QObject {
 
 	protected:
         Fuga* m_Fuga;
+        FugaCrypto* m_Crypto;
         FugaDns* m_Dns;
         FugaSslServer* m_Server;
         std::map<std::string, FugaContact*> m_contacts;

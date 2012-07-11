@@ -65,7 +65,7 @@ void MFugaVideochat::setConnectionData () {
     FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
 
     // user exists?
-    if (Partner->isAccepted() && Partner->isFetched()) {
+    if (Partner->isAccepted() && Partner->isHello()) {
         showVideo();
         return;
     }

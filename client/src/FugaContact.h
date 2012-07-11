@@ -29,8 +29,8 @@ class FugaContact : public QObject {
         bool            isResolved();
         void            doConnect();
         bool            isConnected();
-        void            doFetch();
-        bool            isFetched();
+        void            doHello();
+        bool            isHello();
         void            doAccept();
         bool            isAccepted();
         void            doDisconnect();
@@ -60,7 +60,7 @@ class FugaContact : public QObject {
 
         void sig_resolved();
         void sig_connected();
-        void sig_fetched();
+        void sig_hello();
         void sig_accepted();
         void sig_double();
 
@@ -73,7 +73,7 @@ class FugaContact : public QObject {
 
         void slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
         void slot_connected();
-        void slot_fetched(std::string in_type,std::vector<std::string> in_data);
+        void slot_hello(std::string in_type,std::vector<std::string> in_data);
         void slot_accepted();
         void slot_disconnected();
 

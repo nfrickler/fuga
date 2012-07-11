@@ -33,7 +33,6 @@ FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket)
 
     connectSocket();
     m_socket->startServerEncryption();
-   // doFetch();
 }
 
 // connect signals to socket
@@ -69,7 +68,7 @@ std::string FugaContact::name() {
 bool FugaContact::startStreaming() {
 
     // object accepted?
-    if (!isAccepted() || !isFetched()) return false;
+    if (!isAccepted() || !isHello()) return false;
 
     // create new streamer
     if (m_Streamer == NULL) {
@@ -99,7 +98,7 @@ bool FugaContact::stopStreaming() {
 FugaVideo* FugaContact::Video() {
 
     // object accepted?
-    if (!isAccepted() || !isFetched()) return NULL;
+    if (!isAccepted() || !isHello()) return NULL;
 
     // create new streamer
     FugaVideo* video = new FugaVideo(
@@ -164,7 +163,7 @@ void FugaContact::doConnect() {
 void FugaContact::slot_connected() {
     cout << "FugaContact: slot_connected to " << m_name << endl;
     emit sig_connected();
-    doFetch();
+    doHello();
 }
 
 // are we connected to other client
@@ -176,16 +175,16 @@ bool FugaContact::isConnected() {
 }
 
 // fetch udp connection data of other client
-void FugaContact::doFetch() {
+void FugaContact::doHello() {
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
-            this, SLOT(slot_fetched(std::string,std::vector<std::string>)),Qt::UniqueConnection);
+            this, SLOT(slot_hello(std::string,std::vector<std::string>)),Qt::UniqueConnection);
     stringstream ss("");
     ss << "r_udpdata- ;";
     send_direct(ss.str());
 }
 
 // fetch udpdata from answer
-void FugaContact::slot_fetched(string in_type, vector<string> in_data) {
+void FugaContact::slot_hello(string in_type, vector<string> in_data) {
 
     // udpdata success
     if (in_type == "a_udpdata_ok") {
@@ -193,7 +192,7 @@ void FugaContact::slot_fetched(string in_type, vector<string> in_data) {
         m_udp_ip = new QHostAddress(in_data[1].c_str());
         m_udp_firstport = string2quint16(in_data[2]);
         disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
-                   this, SLOT(slot_fetched(std::string,std::vector<std::string>)));
+                   this, SLOT(slot_hello(std::string,std::vector<std::string>)));
         doAccept();
         return;
     }
@@ -205,7 +204,7 @@ void FugaContact::slot_fetched(string in_type, vector<string> in_data) {
 }
 
 // do we have fetched the udp data of other client?
-bool FugaContact::isFetched() {
+bool FugaContact::isHello() {
     return (m_udp_firstport == 0) ? false : true;
 }
 

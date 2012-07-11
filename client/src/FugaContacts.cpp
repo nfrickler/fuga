@@ -11,6 +11,9 @@ FugaContacts::FugaContacts (Fuga* in_Fuga) {
     // start server
     startServer();
 
+    // init crypto
+    m_Crypto = new FugaCrypto(m_Fuga);
+
     // connect to root
     getDns();
 }

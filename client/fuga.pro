@@ -6,7 +6,8 @@ CONFIG += qt \
  debug_and_release \
  build_all \
  thread \
- lib_bundle
+ lib_bundle \
+ crypto
 DESTDIR = bin
 OBJECTS_DIR = build
 MOC_DIR = build
@@ -24,7 +25,8 @@ HEADERS = \
     src/FugaStreamer.h \
     src/FugaMe.h \
     src/FugaChat.h \
-    src/FugaSslServer.h
+    src/FugaSslServer.h \
+    src/FugaCrypto.h
 SOURCES = src/main.cpp \
     src/FugaConfig.cpp \
     src/FugaHelperFuncs.cpp \
@@ -38,7 +40,8 @@ SOURCES = src/main.cpp \
     src/FugaVideo.cpp \
     src/FugaMe.cpp \
     src/FugaChat.cpp \
-    src/FugaSslServer.cpp
+    src/FugaSslServer.cpp \
+    src/FugaCrypto.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig
