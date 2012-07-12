@@ -16,6 +16,8 @@ class FugaContact : public QObject {
     public:
         FugaContact(Fuga* in_Fuga, std::string in_name);
         FugaContact(Fuga* in_Fuga, QSslSocket* in_socket);
+        FugaContact(Fuga* in_Fuga);
+        void init(Fuga* in_Fuga);
 
         std::string     name();
         FugaVideo*      Video();
@@ -31,6 +33,8 @@ class FugaContact : public QObject {
         bool            isConnected();
         void            doHello();
         bool            isHello();
+        void            doVerify();
+        bool            isVerified();
         void            doAccept();
         bool            isAccepted();
         void            doDisconnect();
@@ -39,8 +43,8 @@ class FugaContact : public QObject {
         Fuga*           m_Fuga;
         FugaStreamer*   m_Streamer;
         bool            m_isaccepted;
-        int             m_hellostatus; // 1: ive checked other; 2: i am accepted
-        int             m_randid;
+        bool            m_verified_active;
+        bool            m_verified_passive;
 
         std::string     m_name;
         QHostAddress*	m_udp_ip;
@@ -63,6 +67,7 @@ class FugaContact : public QObject {
         void sig_resolved();
         void sig_connected();
         void sig_hello();
+        void sig_verified();
         void sig_accepted();
         void sig_double();
 
@@ -76,6 +81,7 @@ class FugaContact : public QObject {
         void slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
         void slot_connected();
         void slot_hello(std::string in_type,std::vector<std::string> in_data);
+        void slot_verify(std::string in_type,std::vector<std::string> in_data);
         void slot_accepted();
         void slot_disconnected();
 

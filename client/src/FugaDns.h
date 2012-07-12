@@ -4,7 +4,6 @@
 #include "FugaContact.h"
 #include <QHostAddress>
 #include <map>
-#include <sstream>
 
 class FugaDns : public FugaContact {
     Q_OBJECT
@@ -13,6 +12,7 @@ class FugaDns : public FugaContact {
         FugaDns(Fuga* in_Fuga);
         bool resolve(std::string in_name);
         void login(std::string in_name, std::string in_password);
+        void send(std::string in_msg);
 
     protected:
         void doConnect();
@@ -24,6 +24,7 @@ class FugaDns : public FugaContact {
     public slots:
         void slot_connected();
         void slot_doResolve(std::string in_type,std::vector<std::string> in_data);
+        void slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
         void slot_checklogin(std::string in_type,std::vector<std::string> in_data);
 
 };

@@ -5,39 +5,36 @@
 
 using namespace std;
 
-FugaContact::FugaContact(Fuga* in_Fuga, std::string in_name)
-    : m_Fuga(in_Fuga),
-      m_name(in_name)
-{
+// constructors
+FugaContact::FugaContact(Fuga* in_Fuga) {
+    init(in_Fuga);
+}
+FugaContact::FugaContact(Fuga* in_Fuga, std::string in_name) {
+    init(in_Fuga);
+    m_name = in_name;
     m_isaccepted = true;
-    m_socket = NULL;
-    m_tcp_ip = NULL;
-    m_tcp_port = 0;
-    m_udp_ip = NULL;
-    m_udp_firstport = 0;
-    m_Streamer = NULL;
-    m_hellostatus = 0;
-
-    m_randid = rand();
-
-    if (in_name != "root") doResolve();
+    doResolve();
+}
+FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket) {
+    init(in_Fuga);
+    m_socket = in_socket;
+    connectSocket();
+    m_socket->startServerEncryption();
 }
 
-FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket)
-    : m_Fuga(in_Fuga),
-      m_socket(in_socket)
-{
+// init
+void FugaContact::init(Fuga* in_Fuga) {
+    m_name = "";
+    m_Fuga = in_Fuga;
+    m_socket = NULL;
     m_isaccepted = false;
     m_tcp_ip = NULL;
     m_tcp_port = 0;
     m_udp_ip = NULL;
     m_udp_firstport = 0;
     m_Streamer = NULL;
-    m_hellostatus = 0;
-    m_randid = rand();
-
-    connectSocket();
-    m_socket->startServerEncryption();
+    m_verified_active = false;
+    m_verified_passive = false;
 }
 
 // connect signals to socket
@@ -128,7 +125,7 @@ void FugaContact::doResolve() {
 // we have got the dns data
 void FugaContact::slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port) {
     if (in_name.compare(m_name) != 0) return;
-    cout << "FugaContact: slot_resolved " << m_name << endl;
+    cout << "FugaContact: slot_resolved: " << m_name << endl;
 
     // disconnect
     FugaContact* Dns = m_Fuga->getContacts()->getDns();
@@ -166,7 +163,7 @@ void FugaContact::doConnect() {
 
 // we are connected
 void FugaContact::slot_connected() {
-    cout << "FugaContact: slot_connected to " << m_randid << endl;
+    cout << "FugaContact: connection established" << endl;
     disconnect(m_socket, SIGNAL(encrypted()),
                this, SLOT(slot_connected()));
     emit sig_connected();
@@ -183,27 +180,23 @@ bool FugaContact::isConnected() {
 
 // fetch udp connection data of other client
 void FugaContact::doHello() {
+
+    // is it my turn to send r_hello?
+    if (m_name == "") return;
     cout << "FugaContact: Send hello" << endl;
+
+    // send r_hello
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
             this, SLOT(slot_hello(std::string,std::vector<std::string>)),Qt::UniqueConnection);
-
-    // get signature
     stringstream ss("");
-    FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
-    std::string name = m_Fuga->getMe()->name();
-    int timestamp = QDateTime::currentDateTime().toTime_t();
-
-    stringstream msg("");
-    msg << name << "_" << timestamp;
-
-    ss << "r_hello-" << name << ","
-       << msg.str() << ","
-       << Crypto->getPubkey() << ","
-       << Crypto->sign(msg.str()) << ";";
+    QHostAddress udpip = QHostAddress(m_Fuga->getConfig()->getConfig("udp_ip").c_str());
+    quint16 udpport = m_Fuga->getConfig()->getInt("udp_firstport");
+    ss << "r_hello-" << m_Fuga->getMe()->name() << ","
+       << udpip.toString().toAscii().data() << "," << udpport << ";";
     send_direct(ss.str());
 }
 
-// fetch udpdata from answer
+// receive answer to hello request
 void FugaContact::slot_hello(string in_type, vector<string> in_data) {
 
     // hello success
@@ -213,9 +206,7 @@ void FugaContact::slot_hello(string in_type, vector<string> in_data) {
         m_udp_firstport = string2quint16(in_data[2]);
         disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
                    this, SLOT(slot_hello(std::string,std::vector<std::string>)));
-        cout << "ACCEPTED BY OTHER" << endl;
-        if (m_hellostatus == 1) doAccept();
-        m_hellostatus = 2;
+        doVerify();
         return;
     }
 
@@ -230,8 +221,55 @@ bool FugaContact::isHello() {
     return (m_udp_firstport == 0) ? false : true;
 }
 
+// fetch udp connection data of other client
+void FugaContact::doVerify() {
+    connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
+            this, SLOT(slot_verify(std::string,std::vector<std::string>)),Qt::UniqueConnection);
+
+    // get signature
+    stringstream ss("");
+    FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
+    std::string name = m_Fuga->getMe()->name();
+    int timestamp = QDateTime::currentDateTime().toTime_t();
+
+    stringstream msg("");
+    msg << name << "_" << timestamp << "_" << m_name;
+
+    ss << "r_verify-" << timestamp << ","
+       << Crypto->getPubkey() << ","
+       << Crypto->sign(msg.str()) << ";";
+    send_direct(ss.str());
+}
+
+// receive answer to verification request
+void FugaContact::slot_verify(string in_type, vector<string> in_data) {
+
+    // hello success
+    if (in_type == "a_verify_ok") {
+        disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
+                   this, SLOT(slot_verify(std::string,std::vector<std::string>)));
+        cout << "ACCEPTED BY OTHER" << endl;
+        m_verified_passive = true;
+        doAccept();
+        return;
+    }
+
+    // hello failed
+    if (in_type == "a_verify_failed") {
+        showError("Verification failed!");
+    }
+}
+
+// do we have fetched the udp data of other client?
+bool FugaContact::isVerified() {
+    return (m_verified_active && m_verified_passive) ? true : false;
+}
+
 // is this connection to the other client accepted?
 void FugaContact::doAccept() {
+
+    // verified?
+    if (!isVerified()) return;
 
     if (!isAccepted()) {
 
@@ -287,13 +325,13 @@ void FugaContact::slot_disconnected() {
 
 void FugaContact::send(string in_msg) {
     if (!isConnected()) {
-        cout << "FugaContact: send failed: No socket: " << m_name << endl;
+        cout << "FugaContact: send failed: No socket to " << m_name << endl;
         addToBuffer(in_msg);
         doConnect();
         return;
     }
     if (!isAccepted()) {
-        cout << "FugaContact: send failed; we are not accepted yet!" << endl;
+        cout << "FugaContact: send failed; wait until accepted!" << endl;
         addToBuffer(in_msg);
         return;
     }
@@ -325,7 +363,6 @@ void FugaContact::sendBuffer() {
 
 // slot to receive waiting data
 void FugaContact::slot_received () {
-    cout << "FugaContact: Received sth!" << endl;
 
     // read from socket
     if (m_socket == NULL || !m_socket->bytesAvailable()) return;
@@ -350,7 +387,6 @@ void FugaContact::slot_received () {
         // split data into vector
         vector<string> splitted = split(data, ",");
 
-        cout << "FugaContact: SIG_RECEIVED " << type << endl;
         emit sig_received(type, splitted);
     }
 }
@@ -363,7 +399,7 @@ void FugaContact::slot_handleError(QAbstractSocket::SocketError in_error) {
 
 // handle ssl errors
 void FugaContact::slot_sslerror(const QList<QSslError> &) {
-    cout << "FugaContact: SSL errors" << endl;
+    cout << "FugaContact: SSL error" << endl;
     m_socket->ignoreSslErrors();
 }
 
@@ -374,7 +410,7 @@ void FugaContact::slot_gotRequest(string in_type,vector<string> in_data) {
     if (in_type == "r_hello") {
         stringstream ss("");
         FugaMe* Me = m_Fuga->getMe();
-        if (in_data.size() != 4) {
+        if (in_data.size() != 3) {
             ss << "a_hello_failed-Invalid package;";
             send_direct(ss.str());
             return;
@@ -385,21 +421,49 @@ void FugaContact::slot_gotRequest(string in_type,vector<string> in_data) {
             return;
         }
 
-        // verify
-        FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
-        if (!Crypto->verify(in_data[0],in_data[2],in_data[1],in_data[3])) {
-            ss << "a_hello_failed-Invalid signature;";
-            send_direct(ss.str());
-            return;
-        }
+        // save data
+        if (m_name.empty()) m_name = in_data[0];
+        m_udp_ip = new QHostAddress(in_data[1].c_str());
+        m_udp_firstport = string2quint16(in_data[2]);
 
+        // send a_hello_ok
         QHostAddress udpip = QHostAddress(m_Fuga->getConfig()->getConfig("udp_ip").c_str());
         quint16 udpport = m_Fuga->getConfig()->getInt("udp_firstport");
         ss << "a_hello_ok-" << Me->name() << ","
            << udpip.toString().toAscii().data() << "," << udpport << ";";
         send_direct(ss.str());
-         cout << "I HAVE ACCEPTED" << endl;
-        if (m_hellostatus == 2) doAccept();
-        m_hellostatus = 1;
+        doVerify();
+    }
+
+    if (in_type == "r_verify") {
+        stringstream ss("");
+        FugaMe* Me = m_Fuga->getMe();
+        if (in_data.size() != 3) {
+            ss << "a_verify_failed-Invalid package;";
+            send_direct(ss.str());
+            return;
+        }
+        if (Me == NULL) {
+            ss << "a_verify_failed-Not ready yet;";
+            send_direct(ss.str());
+            return;
+        }
+
+        // verify
+        FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
+        stringstream msg("");
+        msg << m_name << "_" << in_data[0] << "_" << m_Fuga->getMe()->name();
+        if (!Crypto->verify(m_name,in_data[1],msg.str(),in_data[2])) {
+            ss << "a_verify_failed-Invalid signature;";
+            send_direct(ss.str());
+            return;
+        }
+
+        // verification ok
+        ss << "a_verify_ok-;";
+        send_direct(ss.str());
+        cout << "I HAVE ACCEPTED" << endl;
+        m_verified_active = true;
+        doAccept();
     }
 }

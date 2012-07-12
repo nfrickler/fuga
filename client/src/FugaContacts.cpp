@@ -22,11 +22,11 @@ FugaContacts::FugaContacts (Fuga* in_Fuga) {
 
 // get Contact
 FugaContact* FugaContacts::getContact(string in_name) {
-    cout << "FugaContacts: Someone requested Contact " << in_name << endl;
 
     // create new contact
     if (!isContact(in_name)) {
-        cout << "FugaContacts: Create new Contact" << endl;
+        cout << "FugaContacts: Number of Contacts: " << m_contacts.size() << endl;
+        cout << "FugaContacts: Create new Contact: '" << in_name << "'" << endl;
         m_contacts[in_name] = new FugaContact(m_Fuga, in_name);
         connectContact(m_contacts[in_name]);
     }
@@ -78,7 +78,7 @@ void FugaContacts::startServer() {
 
 // add pending connection
 void FugaContacts::slot_addconnection(QSslSocket* in_socket) {
-    cout << "Someone connected to me using SSL!" << endl;
+    cout << "FugaContacts: New connection" << endl;
     FugaContact* newcontact = new FugaContact(m_Fuga, in_socket);
     connectContact(newcontact);
 }
@@ -105,9 +105,9 @@ void FugaContacts::slot_con_received(std::string in_type, std::vector<std::strin
     emit sig_received(sender->name(),in_type,in_data);
 }
 void FugaContacts::slot_con_connected() {
-    cout << "FugaContacts: is connected" << endl;
     FugaContact* sender = (FugaContact*) QObject::sender();
     disconnect(sender, SIGNAL(sig_accepted()),this,SLOT(slot_con_connected()));
+    cout << "FugaContacts: Connected to " << sender->name() << endl;
     emit sig_connected(sender->name());
 }
 void FugaContacts::slot_con_disconnected() {

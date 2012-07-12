@@ -1,13 +1,15 @@
 #include "FugaDns.h"
 #include "Fuga.h"
 #include "FugaHelperFuncs.h"
+#include <sstream>
 
 using namespace std;
 
 FugaDns::FugaDns(Fuga* in_Fuga)
-    : FugaContact(in_Fuga, "root")
+    : FugaContact(in_Fuga)
 {
     m_Fuga = in_Fuga;
+    m_name = "root";
 
     // connect
     doConnect();
@@ -30,7 +32,7 @@ void FugaDns::doConnect() {
 
 // we are connected
 void FugaDns::slot_connected() {
-    cout << "FugaContact: slot_connected to " << m_name << endl;
+    cout << "FugaContact: slot_connected to root" << endl;
     sendBuffer();
     emit sig_connected();
     emit sig_accepted();
@@ -62,6 +64,10 @@ void FugaDns::slot_doResolve (std::string in_type,std::vector<std::string> in_da
     QHostAddress* ip = new QHostAddress(in_data[1].c_str());
     quint16 port = string2quint16(in_data[2]);
     emit sig_resolved(name, ip, port);
+}
+
+void FugaDns::slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port) {
+    return;
 }
 
 // send login request to server
@@ -98,4 +104,14 @@ void FugaDns::slot_checklogin(std::string in_type,std::vector<std::string> in_da
     if (in_type == "a_login_failed") {
         emit sig_loggedin(2);
     }
+}
+
+void FugaDns::send(string in_msg) {
+    if (!isConnected()) {
+        cout << "FugaContact: send failed: No socket to " << m_name << endl;
+        addToBuffer(in_msg);
+        doConnect();
+        return;
+    }
+    send_direct(in_msg);
 }
