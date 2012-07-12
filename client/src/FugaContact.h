@@ -39,6 +39,8 @@ class FugaContact : public QObject {
         Fuga*           m_Fuga;
         FugaStreamer*   m_Streamer;
         bool            m_isaccepted;
+        int             m_hellostatus; // 1: ive checked other; 2: i am accepted
+        int             m_randid;
 
         std::string     m_name;
         QHostAddress*	m_udp_ip;

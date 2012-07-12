@@ -16,6 +16,9 @@ FugaContact::FugaContact(Fuga* in_Fuga, std::string in_name)
     m_udp_ip = NULL;
     m_udp_firstport = 0;
     m_Streamer = NULL;
+    m_hellostatus = 0;
+
+    m_randid = rand();
 
     if (in_name != "root") doResolve();
 }
@@ -30,6 +33,8 @@ FugaContact::FugaContact(Fuga* in_Fuga, QSslSocket* in_socket)
     m_udp_ip = NULL;
     m_udp_firstport = 0;
     m_Streamer = NULL;
+    m_hellostatus = 0;
+    m_randid = rand();
 
     connectSocket();
     m_socket->startServerEncryption();
@@ -122,7 +127,7 @@ void FugaContact::doResolve() {
 
 // we have got the dns data
 void FugaContact::slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port) {
-    if (in_name != m_name) return;
+    if (in_name.compare(m_name) != 0) return;
     cout << "FugaContact: slot_resolved " << m_name << endl;
 
     // disconnect
@@ -161,7 +166,9 @@ void FugaContact::doConnect() {
 
 // we are connected
 void FugaContact::slot_connected() {
-    cout << "FugaContact: slot_connected to " << m_name << endl;
+    cout << "FugaContact: slot_connected to " << m_randid << endl;
+    disconnect(m_socket, SIGNAL(encrypted()),
+               this, SLOT(slot_connected()));
     emit sig_connected();
     doHello();
 }
@@ -176,30 +183,45 @@ bool FugaContact::isConnected() {
 
 // fetch udp connection data of other client
 void FugaContact::doHello() {
+    cout << "FugaContact: Send hello" << endl;
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
             this, SLOT(slot_hello(std::string,std::vector<std::string>)),Qt::UniqueConnection);
+
+    // get signature
     stringstream ss("");
-    ss << "r_udpdata- ;";
+    FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
+    std::string name = m_Fuga->getMe()->name();
+    int timestamp = QDateTime::currentDateTime().toTime_t();
+
+    stringstream msg("");
+    msg << name << "_" << timestamp;
+
+    ss << "r_hello-" << name << ","
+       << msg.str() << ","
+       << Crypto->getPubkey() << ","
+       << Crypto->sign(msg.str()) << ";";
     send_direct(ss.str());
 }
 
 // fetch udpdata from answer
 void FugaContact::slot_hello(string in_type, vector<string> in_data) {
 
-    // udpdata success
-    if (in_type == "a_udpdata_ok") {
-        if (m_name == "") m_name = in_data[0];
+    // hello success
+    if (in_type == "a_hello_ok") {
+        if (m_name.empty()) m_name = in_data[0];
         m_udp_ip = new QHostAddress(in_data[1].c_str());
         m_udp_firstport = string2quint16(in_data[2]);
         disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
                    this, SLOT(slot_hello(std::string,std::vector<std::string>)));
-        doAccept();
+        cout << "ACCEPTED BY OTHER" << endl;
+        if (m_hellostatus == 1) doAccept();
+        m_hellostatus = 2;
         return;
     }
 
-    // udpdata failed
-    if (in_type == "a_udpdata_failed") {
-        showError("Could not fetch UDP data of contact!");
+    // hello failed
+    if (in_type == "a_hello_failed") {
+        showError("Hello failed!");
     }
 }
 
@@ -212,6 +234,15 @@ bool FugaContact::isHello() {
 void FugaContact::doAccept() {
 
     if (!isAccepted()) {
+
+        // connected to myself?
+        cout << "names: " << m_name << " and " << m_Fuga->getMe()->name() << endl;
+        if (m_name.compare(m_Fuga->getMe()->name()) == 0) {
+            cout << "FugaContact: Connected with myself..." << endl;
+            m_isaccepted = true;
+            return;
+        }
+
         if (!m_Fuga->getContacts()->registerContact(this)) {
             // another connection already exists!
             cout << "FugaContact: destroying myself" << endl;
@@ -220,6 +251,7 @@ void FugaContact::doAccept() {
             FugaContact* other = m_Fuga->getContacts()->getContact(m_name);
             other->send(m_buffer);
 
+            m_socket->disconnectFromHost();
             delete this;
             return;
         }
@@ -310,14 +342,10 @@ void FugaContact::slot_received () {
     for (vector<string>::iterator i = msgs.begin(); i != msgs.end(); ++i) {
 
         // split type and data
-        vector<string> parts = split(*i, "-");
-        if (parts.size() != 2) {
-            // invalid message!
-            cout << "FugaContact: Invalid message received! (" << parts.size() << ")" << endl;
-            continue;
-        }
-        string type = parts[0];
-        string data = parts[1];
+        string myinput = *i;
+        int splitat = myinput.find("-");
+        string type = myinput.substr(0,splitat);
+        string data = myinput.substr((splitat+1));
 
         // split data into vector
         vector<string> splitted = split(data, ",");
@@ -343,18 +371,35 @@ void FugaContact::slot_sslerror(const QList<QSslError> &) {
 
 void FugaContact::slot_gotRequest(string in_type,vector<string> in_data) {
 
-    if (in_type == "r_udpdata") {
+    if (in_type == "r_hello") {
         stringstream ss("");
         FugaMe* Me = m_Fuga->getMe();
-        if (Me == NULL) {
-            ss << "a_udpdata_failed-Not ready yet;";
+        if (in_data.size() != 4) {
+            ss << "a_hello_failed-Invalid package;";
             send_direct(ss.str());
             return;
         }
+        if (Me == NULL) {
+            ss << "a_hello_failed-Not ready yet;";
+            send_direct(ss.str());
+            return;
+        }
+
+        // verify
+        FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
+        if (!Crypto->verify(in_data[0],in_data[2],in_data[1],in_data[3])) {
+            ss << "a_hello_failed-Invalid signature;";
+            send_direct(ss.str());
+            return;
+        }
+
         QHostAddress udpip = QHostAddress(m_Fuga->getConfig()->getConfig("udp_ip").c_str());
         quint16 udpport = m_Fuga->getConfig()->getInt("udp_firstport");
-        ss << "a_udpdata_ok-" << Me->name() << ","
+        ss << "a_hello_ok-" << Me->name() << ","
            << udpip.toString().toAscii().data() << "," << udpport << ";";
         send_direct(ss.str());
+         cout << "I HAVE ACCEPTED" << endl;
+        if (m_hellostatus == 2) doAccept();
+        m_hellostatus = 1;
     }
 }

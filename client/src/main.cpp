@@ -2,6 +2,7 @@
 #include <QFont>
 #include <iostream>
 #include <gst/gst.h>
+#include <QtCrypto/QtCrypto>
 
 #include "Fuga.h"
 
@@ -9,6 +10,8 @@ class Fuga;
 using namespace std;
 
 int main(int argc, char *argv[]) {
+
+    QCA::Initializer init;
 
 	cout << endl;
 	cout << " ############ FuGa ##################" << endl;

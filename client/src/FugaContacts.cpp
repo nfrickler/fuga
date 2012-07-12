@@ -91,6 +91,12 @@ FugaDns* FugaContacts::getDns() {
     return m_Dns;
 }
 
+// get FugaCrypto object
+FugaCrypto* FugaContacts::getCrypto() {
+    if (m_Crypto == NULL) m_Crypto = new FugaCrypto(m_Fuga);
+    return m_Crypto;
+}
+
 // ####################### handle signals of Contacts ##################
 
 void FugaContacts::slot_con_received(std::string in_type, std::vector<std::string> in_data) {
@@ -101,6 +107,7 @@ void FugaContacts::slot_con_received(std::string in_type, std::vector<std::strin
 void FugaContacts::slot_con_connected() {
     cout << "FugaContacts: is connected" << endl;
     FugaContact* sender = (FugaContact*) QObject::sender();
+    disconnect(sender, SIGNAL(sig_accepted()),this,SLOT(slot_con_connected()));
     emit sig_connected(sender->name());
 }
 void FugaContacts::slot_con_disconnected() {

@@ -20,6 +20,7 @@ class FugaContacts : public QObject {
         FugaContact* getContact(std::string in_name);
         bool isContact(std::string name);
         FugaDns* getDns();
+        FugaCrypto* getCrypto();
         bool registerContact(FugaContact* in_Contact);
         void connectContact (FugaContact* in_Contact);
 
