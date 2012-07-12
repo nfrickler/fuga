@@ -11,5 +11,5 @@ FugaMe::FugaMe(Fuga* in_Fuga, string in_name)
 }
 
 string FugaMe::name() {
-    return m_name;
+    return (m_name.empty()) ? "" : m_name;
 }

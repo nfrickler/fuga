@@ -394,7 +394,8 @@ void FugaContact::slot_received () {
 // handle errors
 void FugaContact::slot_handleError(QAbstractSocket::SocketError in_error) {
     cout << "FugaContact: Connection error:" << in_error
-         << " string: " << m_socket->errorString().toAscii().data() << endl;
+         << " : " << m_socket->errorString().toAscii().data() << endl;
+   // emit sig_disconnected();
 }
 
 // handle ssl errors

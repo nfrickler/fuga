@@ -109,7 +109,7 @@ sub write {
 # close connection
 sub close {
     my ($self,$nowrite) = @_;
-print "Close\n";
+
     # write out_buf
     $self->write() unless $nowrite;
 

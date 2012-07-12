@@ -63,8 +63,7 @@ sub start {
 	SSL_verify_mode => 0x00,
 	SSL_passwd_cb => sub {return "bluebell"},
 	Blocking => 0
-	#  ) or die "Failed to open socket ($!)";
-) or die "unable to create socket: ", &IO::Socket::SSL::errstr, "\n";
+    ) or die "unable to create socket: ", &IO::Socket::SSL::errstr, "\n";
 
     # start listening
     $self->{'to_read'} = new IO::Select();
@@ -108,7 +107,11 @@ sub main {
 
 		# add new connection
 		my $new_hndl = $hndl->accept();
-		$new_hndl->blocking(0);
+		eval{$new_hndl->blocking(0)};
+		if ($@) {
+		    print "FugaServer: Client disconnected immediately\n";
+		    next;
+		}
 		$self->{'to_read'}->add($new_hndl);
 		$self->{'to_write'}->add($new_hndl);
 

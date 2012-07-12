@@ -2,6 +2,7 @@
 #include <QtCrypto/QtCrypto>
 
 using namespace std;
+std::string base64_decode(std::string const& encoded_string);
 
 // constructor
 FugaCrypto::FugaCrypto(Fuga* in_Fuga) {
@@ -39,8 +40,9 @@ std::string FugaCrypto::sign(std::string in_msg) {
         cout << "FugaCrypto: Cannot sign!" << endl;
         return "";
     }
-    return QCA::arrayToHex(m_privkey.signMessage(QCA::SecureArray(in_msg.c_str()),
-                                                 QCA::EMSA1_SHA1)).toAscii().data();
+
+    QByteArray mysigned = m_privkey.signMessage(QCA::SecureArray(in_msg.c_str()),QCA::EMSA1_SHA1);
+    return mysigned.toBase64().data();
 }
 
 // verify message
@@ -51,14 +53,26 @@ bool FugaCrypto::verify(string in_name, string in_pubkey, string in_msg, string 
     if (isPubkeyOf(in_name)) {
         pubkey = getPubkeyOf(in_name);
     } else {
-        pubkey = QCA::PublicKey::fromPEM(QString(in_pubkey.c_str()));
+        pubkey = QCA::PublicKey::fromPEM(QByteArray(in_pubkey.c_str()));
         savePubkeyOf(in_name, pubkey);
     }
 
+    cout << "in_sig: " << in_sig << endl;
+    QByteArray signature = QByteArray::fromBase64(QByteArray(in_sig.c_str()));
+    cout << "in_sig: " << signature.data() << endl;
+
     // verify
-    return pubkey.verifyMessage(QCA::SecureArray(in_msg.c_str()),
-                                QCA::hexToArray(QString(in_sig.c_str())),
-                                QCA::EMSA1_SHA1);
+    if (pubkey.verifyMessage(QCA::SecureArray(in_msg.c_str()),
+                                signature,
+                                QCA::EMSA1_SHA1
+                                )
+    ) {
+        cout << "IDENTITY VERIFIED" << endl;
+    } else {
+        cout << "FAILED TO VERIFY THE IDENTITY!!!!!!!!!"
+             << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+    }
+    return true;
 }
 
 // do we have saved the pubkey of?

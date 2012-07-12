@@ -11,6 +11,7 @@ Fuga::Fuga() {
     m_Config = new FugaConfig();
     m_Window = new FugaWindow(this);
     m_Contacts = new FugaContacts(this);
+    m_Me = new FugaMe(this,"");
 
     m_selected = NULL;
 
@@ -116,6 +117,7 @@ void Fuga::slot_login(string in_name, string in_password) {
 // send login to server
 void Fuga::doLogin() {
     cout << "Fuga: Try to login..." << endl;
+    m_Me = new FugaMe(this,m_name);
     FugaDns* Dns = getContacts()->getDns();
     connect(Dns, SIGNAL(sig_loggedin(int)),this,SLOT(slot_checklogin(int)),Qt::UniqueConnection);
     Dns->login(m_name, m_password);
@@ -129,7 +131,6 @@ void Fuga::slot_checklogin(int in_return) {
         case 0: {
             // success
             cout << "Fuga: Login success!" << endl;
-            m_Me = new FugaMe(this,m_name);
             m_name = "";
             m_password = "";
             m_loggedin = true;

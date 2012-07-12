@@ -14,12 +14,14 @@ my $DEBUG = 1;
 package FugaServer;
 use FugaServer;
 use FugaUser;
+use FugaCrypto;
 use Switch;
 use DBI;
 
 # get parameter
 our $server_host = $ARGV[0] || "127.0.0.1";
 our $server_port = $ARGV[1] || 7777;
+my $networkname = $ARGV[2] || "testnet";
 
 # ####################################################################
 # Init
@@ -27,6 +29,10 @@ our $server_port = $ARGV[1] || 7777;
 
 print "Server starting up...\n";
 print "Listening on $server_host port $server_port \n";
+
+# get FugaCrypto
+my $Crypto = FugaCrypto->new();
+die "Could not start Crypto" unless $Crypto;
 
 # get FugaServer
 my $Server = FugaServer->new(
@@ -192,8 +198,9 @@ sub handleRequest {
 
     # handle request
     switch ($typeid) {
-
-	# r_login
+	case "r_sverify" {
+	    return client_sverify($User,$Conn,$data);
+	}
 	case "r_login" {
 	    return client_login($User,$Conn,$data);
 	}
@@ -209,6 +216,21 @@ sub handleRequest {
     }
 
     return "0-Invalid";
+}
+
+# send verification message to client
+sub client_sverify {
+    my ($User, $Conn, $data) = @_;
+
+    # message to sign
+    my $msg2sign = $data."_".$networkname;
+
+    # construct and send message
+    my $msg = "a_sverify-" . $networkname . "," . time() . "," .
+	$Crypto->getPub() . "," .
+	$Crypto->sign($msg2sign) . ";";
+    chomp($msg);
+    $Conn->write($msg);
 }
 
 # login
