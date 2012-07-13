@@ -39,7 +39,8 @@ sub new {
 }
 
 sub login {
-    my ($self, $name, $password, $ip, $port) = @_;
+    my ($self, $name, $password, $ip, $port, $pubkey) = @_;
+    $pubkey =~ s/\n/%%%/g;
 
     # name exists?
     if ($self->isUser($name)) {
@@ -56,6 +57,7 @@ sub login {
 		    dateOfLogin = NOW(),
 		    tcp_ip = '$ip',
 		    tcp_port = '$port',
+		    pubkey = '$pubkey',
 		    logged = 1
 		WHERE name = '$name';";
 	    $self->_db($sql, 1);
@@ -80,6 +82,7 @@ sub login {
 	    logged = 0
 	ON DUPLICATE KEY UPDATE
 	    password = '$password',
+	    pubkey = '$pubkey',
 	    dateOfLast = NOW(),
 	    dateOfRegistration = NOW(),
 	    logged = 0;";
@@ -189,13 +192,14 @@ sub getTcp {
 
     # request database
     my $sql = "
-	SELECT tcp_ip, tcp_port
+	SELECT tcp_ip, tcp_port, pubkey
 	FROM users
 	WHERE name = '".$self->name()."';";
     my $result = $self->_db($sql, 0);
     return 0 unless $result and @$result;
 
-    return ($result->[0]{tcp_ip}, $result->[0]{tcp_port});
+    $result->[0]{pubkey} =~ s/%%%/\n/g;
+    return ($result->[0]{tcp_ip}, $result->[0]{tcp_port}, $result->[0]{pubkey});
 }
 
 # is this a valid user?

@@ -120,7 +120,7 @@ void Fuga::doLogin() {
     m_Me = new FugaMe(this,m_name);
     FugaDns* Dns = getContacts()->getDns();
     connect(Dns, SIGNAL(sig_loggedin(int)),this,SLOT(slot_checklogin(int)),Qt::UniqueConnection);
-    Dns->login(m_name, m_password);
+    Dns->doLogin(m_name, m_password);
 }
 
 // get result of login request

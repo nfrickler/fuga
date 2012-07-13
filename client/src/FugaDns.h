@@ -1,38 +1,40 @@
 #ifndef FUGADNS_H
 #define FUGADNS_H
 
-#include "FugaContact.h"
-#include <QHostAddress>
-#include <map>
+#include "FugaSocket.h"
 
-class FugaDns : public FugaContact {
+class Fuga;
+
+class FugaDns : public FugaSocket {
     Q_OBJECT
 
     public:
         FugaDns(Fuga* in_Fuga);
-        bool resolve(std::string in_name);
-        void login(std::string in_name, std::string in_password);
-        void send(std::string in_msg);
 
-        void doVerify();
+        bool resolve(std::string in_name);
+
+        bool isConnectionReady();
+
         bool isVerified();
+        void doLogin(std::string in_name, std::string in_password);
+        bool isLoggedin();
+
+        void doDisconnect();
 
     protected:
-        void doConnect();
         int m_msg2sign;
+        bool m_isloggedin;
 
     signals:
-        void sig_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
         void sig_loggedin(int in_return);
+        void sig_resolved(std::string,QHostAddress*,quint16,std::string);
 
     public slots:
-        void slot_connected();
+        void slot_start_verify();
         void slot_verify(std::string in_type,std::vector<std::string> in_data);
-        void slot_doResolve(std::string in_type,std::vector<std::string> in_data);
-        void slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port);
         void slot_checklogin(std::string in_type,std::vector<std::string> in_data);
-        void slot_disconnected();
 
+        void slot_doResolve(std::string in_type,std::vector<std::string> in_data);
 };
 
 #endif // FUGADNS_H

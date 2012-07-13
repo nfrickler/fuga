@@ -6,14 +6,18 @@
 using namespace std;
 
 FugaDns::FugaDns(Fuga* in_Fuga)
-    : FugaContact(in_Fuga)
+    : FugaSocket(in_Fuga)
 {
-    m_Fuga = in_Fuga;
     m_name = "root";
-
-    // connect
-    connect(this,SIGNAL(sig_disconnected()),this,SLOT(slot_disconnected()));
+    m_isloggedin = false;
+    m_tcp_ip = new QHostAddress(m_Fuga->getConfig()->getConfig("root_ip").c_str());
+    m_tcp_port = m_Fuga->getConfig()->getInt("root_port");
+    connect(this,SIGNAL(sig_connected()),this,SLOT(slot_start_verify()));
+    connect(this,SIGNAL(sig_received(std::string,std::vector<std::string>)),
+            this,SLOT(slot_doResolve(std::string,std::vector<std::string>)));
 }
+
+// ####################### resolving #########################
 
 // send request to server to resolve username
 bool FugaDns::resolve(std::string in_name) {
@@ -26,13 +30,19 @@ bool FugaDns::resolve(std::string in_name) {
 // we have received an answer to a resolve request
 void FugaDns::slot_doResolve (std::string in_type,std::vector<std::string> in_data) {
 
+    // resolving failed?
+    if (in_type == "a_name2tcp_failed") {
+        emit sig_resolved(in_data[0], NULL, 0, "");
+        return;
+    }
+
     // is message we expect?
     if (in_type != "a_name2tcp") return;
 
     // extract data from in_data
-    if (in_data.size() != 3) {
+    if (in_data.size() != 4) {
         // invalid message!
-        cout << "FugaDns: Invalid message received! (" << in_data.size() << ")" << endl;
+        cout << m_id << " | FugaDns: Invalid message received! (" << in_data.size() << ")" << endl;
         return;
     }
 
@@ -40,15 +50,14 @@ void FugaDns::slot_doResolve (std::string in_type,std::vector<std::string> in_da
     string name = in_data[0];
     QHostAddress* ip = new QHostAddress(in_data[1].c_str());
     quint16 port = string2quint16(in_data[2]);
-    emit sig_resolved(name, ip, port);
+    string pubkey = in_data[3];
+    emit sig_resolved(name, ip, port, pubkey);
 }
 
-void FugaDns::slot_resolved(std::string in_name, QHostAddress* in_ip, quint16 in_port) {
-    return;
-}
+// ########################## login ##############################
 
 // send login request to server
-void FugaDns::login(std::string in_name, std::string in_password) {
+void FugaDns::doLogin(std::string in_name, std::string in_password) {
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
             this, SLOT(slot_checklogin(std::string,std::vector<std::string>)));
     QHostAddress myip = QHostAddress(m_Fuga->getConfig()->getConfig("tcp_ip").c_str());
@@ -57,19 +66,21 @@ void FugaDns::login(std::string in_name, std::string in_password) {
     ss << "r_login-" << in_name << ","
        << in_password << ","
        << myip.toString().toStdString() << "," << myport << ","
-       << ";";
-    send(ss.str());
+       << m_Fuga->getContacts()->getCrypto()->getPubkey() <<";";
+    send_direct(ss.str());
 }
 
 // check result of login request
 void FugaDns::slot_checklogin(std::string in_type,std::vector<std::string> in_data) {
-    cout << "FugaDns: Got answer to login: " << in_type << endl;
+    cout << m_id << " | FugaDns: Got answer to login: " << in_type << endl;
 
     // successful login?
     if (in_type == "a_login_ok") {
+        m_isloggedin = true;
         emit sig_loggedin(0);
         disconnect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
                    this, SLOT(slot_checklogin(std::string,std::vector<std::string>)));
+        sendBuffer();
     }
 
     // confirm?
@@ -83,41 +94,20 @@ void FugaDns::slot_checklogin(std::string in_type,std::vector<std::string> in_da
     }
 }
 
-void FugaDns::send(string in_msg) {
-    if (!isConnected()) {
-        cout << "FugaContact: send failed: No socket to " << m_name << endl;
-        addToBuffer(in_msg);
-        doConnect();
-        return;
-    }
-    send_direct(in_msg);
+// are we logged in?
+bool FugaDns::isLoggedin() {
+    return m_isloggedin;
+}
+
+// Ready to send?
+bool FugaDns::isConnectionReady() {
+    return isLoggedin();
 }
 
 // ###################### connect to root ########################
 
-// connect to root server
-void FugaDns::doConnect() {
-
-    // get config
-    m_tcp_ip = new QHostAddress(m_Fuga->getConfig()->getConfig("root_ip").c_str());
-    m_tcp_port = m_Fuga->getConfig()->getInt("root_port");
-
-    // connect receive to resolve
-    connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
-            this, SLOT(slot_doResolve(std::string,std::vector<std::string>)));
-
-    // connect
-    FugaContact::doConnect();
-}
-
-// we are connected
-void FugaDns::slot_connected() {
-    cout << "FugaDns: slot_connected to root" << endl;
-    doVerify();
-}
-
 // fetch udp connection data of other client
-void FugaDns::doVerify() {
+void FugaDns::slot_start_verify() {
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
             this, SLOT(slot_verify(std::string,std::vector<std::string>)),Qt::UniqueConnection);
 
@@ -131,7 +121,7 @@ void FugaDns::doVerify() {
 // receive answer to verification request
 void FugaDns::slot_verify(string in_type, vector<string> in_data) {
     if (in_type.compare("a_sverify")) return;
-    cout << "FugaDns: Verify root" << endl;
+    cout << m_id << " | FugaDns: Verify root" << endl;
 
     if (in_data.size() != 4) {
         showError("FugaDns server sent invalid verify message!");
@@ -142,20 +132,18 @@ void FugaDns::slot_verify(string in_type, vector<string> in_data) {
     FugaCrypto* Crypto = m_Fuga->getContacts()->getCrypto();
     stringstream msg("");
     msg << m_msg2sign << "_" << in_data[1] << "_" << in_data[0];
-    cout << "Verify 3" << endl;
     if (!Crypto->verify(m_name,in_data[2],msg.str(),in_data[3])) {
         showError("Failed to verify identity of root server!");
         return;
     }
-    cout << "FugaDns: Root verification ACCEPTED." << endl;
+    cout << m_id << " | FugaDns: Root verification ACCEPTED." << endl;
 
     // connected successfully
-    sendBuffer();
-    emit sig_connected();
-    emit sig_accepted();
+    emit sig_connectionready();
 }
 
-void FugaDns::slot_disconnected() {
-    showError("Connection to root server has been disconnected.");
-    m_Fuga->slot_mode_login();
+// do disconnect
+void FugaDns::doDisconnect() {
+    showError("Connection to root server has been disconnected!");
+    emit sig_disconnected();
 }

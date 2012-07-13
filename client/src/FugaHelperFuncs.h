@@ -12,6 +12,7 @@
 std::vector<std::string> split(std::string s, std::string delim);
 std::string replace(std::string str, std::string in, std::string out);
 std::string merge(std::string array1, std::string array2);
+std::string trim(std::string& pString,const std::string& pWhitespace = " \t\r\n");
 
 std::string int2string(int i);
 int string2int(const std::string s);

@@ -57,9 +57,9 @@ bool FugaCrypto::verify(string in_name, string in_pubkey, string in_msg, string 
         savePubkeyOf(in_name, pubkey);
     }
 
-    cout << "in_sig: " << in_sig << endl;
+   // cout << "in_sig1: " << in_sig << endl;
     QByteArray signature = QByteArray::fromBase64(QByteArray(in_sig.c_str()));
-    cout << "in_sig: " << signature.data() << endl;
+   // cout << "in_sig2: " << signature.data() << endl;
 
     // verify
     if (pubkey.verifyMessage(QCA::SecureArray(in_msg.c_str()),

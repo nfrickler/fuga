@@ -236,10 +236,10 @@ sub client_sverify {
 # login
 sub client_login {
     my ($User, $Conn, $data) = @_;
-    my ($name, $password, $ip, $port) = split ",", $data;
+    my ($name, $password, $ip, $port, $pubkey) = split ",", $data;
 
     # try to login
-    my $result = $User->login($name, $password, $ip, $port);
+    my $result = $User->login($name, $password, $ip, $port, $pubkey);
     return "a_login_failed" unless $result;
     return "a_login_confirm" if $result == 2;
 
@@ -253,13 +253,13 @@ sub client_name2tcp {
 
     # get User
     my $Req = FugaUser->new($DB, $data);
-    return "a_name2tcp_failed-".$data.",No such user!" unless $Req;
+    return "a_name2tcp_failed-".$data.",No such user" unless $Req;
 
     # get data
-    my ($ip, $port) = $Req->getTcp();
+    my ($ip, $port, $pubkey) = $Req->getTcp();
     return "a_name2tcp_failed-".$data.",No data"
 	unless defined $ip and defined $port;
-    return "a_name2tcp-$data,$ip,$port";
+    return "a_name2tcp-$data,$ip,$port,$pubkey";
 }
 
 # logout

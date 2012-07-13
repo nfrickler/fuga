@@ -14,6 +14,7 @@ MFugaVideochat::MFugaVideochat(FugaWindow* mywindow, Fuga* in_Fuga) {
 	// save input in obj-vars
 	m_main_window = mywindow;
     m_Fuga = in_Fuga;
+    m_Chat = NULL;
 
 	// ask for name
 	askForPerson();
@@ -88,7 +89,7 @@ void MFugaVideochat::slot_showVideo (std::string in_name) {
 }
 
 void MFugaVideochat::slot_videoFailed () {
-    cout << "MFugaVideochat: Connection to other host failed!" << endl;
+    showError("Es konnte keine Verbindung zum Chatpartner hergestellt werden!");
 	m_timer->stop();
     m_Fuga->getWindow()->showSelection();
 }
@@ -145,18 +146,13 @@ void MFugaVideochat::showVideo () {
 // the partner disconnected
 void MFugaVideochat::slot_disconnected(string in_name) {
     if (in_name != m_partner) return;
-    showError("Der Chatpartner hat den Chat verlassen.");
+    if (m_Chat) showError("Der Chatpartner hat den Chat verlassen.");
     doDisconnect();
     m_Fuga->slot_mode_select();
 }
 
 // do disconnect
 void MFugaVideochat::doDisconnect() {
-    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
-    disconnect(m_Fuga->getContacts(), SIGNAL(sig_disconnected(std::string)),
-               this, SLOT(slot_disconnected(std::string)));
-    Partner->doDisconnect();
     m_partner = "";
-    if (m_Chat) delete m_Chat;
+    if (m_Chat != NULL) delete m_Chat;
 }
-

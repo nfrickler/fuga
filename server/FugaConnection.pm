@@ -81,7 +81,7 @@ sub read {
 # read next message (if available)
 sub getMsg {
     my $self = shift;
-    $self->{buf_in} =~ s/^[\n\r\s]*(.*?);[\n\r\s]*//;
+    $self->{buf_in} =~ s/^[\n\r\s]*(.*?);[\n\r\s]*//ms;
     return $1 ? $1 : '';
 }
 

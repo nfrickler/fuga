@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `password` varchar(40) NOT NULL,
   `tcp_ip` varchar(100) NOT NULL,
   `tcp_port` int(11) NOT NULL,
+  `pubkey` varchar(300) NOT NULL,
   `dateOfRegistration` datetime NOT NULL,
   `dateOfLogin` datetime NOT NULL,
   `dateOfLast` datetime NOT NULL,

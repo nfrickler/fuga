@@ -178,7 +178,7 @@ sub runLine {
     $DEBUG and print "FugaServer->runLine: Got input from Connection: $input\n";
 
     # split input
-    my ($typeid, $msgdata) = $input =~ /^(.*?)-(.*)$/;
+    my ($typeid, $msgdata) = $input =~ /^(.*?)-(.*)$/ms;
     unless (defined $typeid and defined $msgdata) {
 	print "# Received invalid request!\n";
 	$self->printTo($hndl, "a_bad_request-;");

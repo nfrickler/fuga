@@ -36,7 +36,7 @@ FugaContact* FugaContacts::getContact(string in_name) {
 
 // connect Contact's signals to my slots
 void FugaContacts::connectContact(FugaContact* in_Contact) {
-    connect(in_Contact, SIGNAL(sig_accepted()),this,SLOT(slot_con_connected()));
+    connect(in_Contact, SIGNAL(sig_connectionready()),this,SLOT(slot_con_connected()));
     connect(in_Contact, SIGNAL(sig_disconnected()),this,SLOT(slot_con_disconnected()));
     connect(in_Contact,SIGNAL(sig_received(std::string,std::vector<std::string>)),
             this,SLOT(slot_con_received(std::string,std::vector<std::string>)));
@@ -78,7 +78,6 @@ void FugaContacts::startServer() {
 
 // add pending connection
 void FugaContacts::slot_addconnection(QSslSocket* in_socket) {
-    cout << "FugaContacts: New connection" << endl;
     FugaContact* newcontact = new FugaContact(m_Fuga, in_socket);
     connectContact(newcontact);
 }
@@ -106,7 +105,7 @@ void FugaContacts::slot_con_received(std::string in_type, std::vector<std::strin
 }
 void FugaContacts::slot_con_connected() {
     FugaContact* sender = (FugaContact*) QObject::sender();
-    disconnect(sender, SIGNAL(sig_accepted()),this,SLOT(slot_con_connected()));
+    disconnect(sender, SIGNAL(sig_connectionready()),this,SLOT(slot_con_connected()));
     cout << "FugaContacts: Connected to " << sender->name() << endl;
     emit sig_connected(sender->name());
 }
@@ -114,4 +113,5 @@ void FugaContacts::slot_con_disconnected() {
     FugaContact* sender = (FugaContact*) QObject::sender();
     emit sig_disconnected(sender->name());
     m_contacts.erase(sender->name());
+    delete sender;
 }
