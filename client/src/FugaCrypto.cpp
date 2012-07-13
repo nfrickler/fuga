@@ -22,6 +22,7 @@ FugaCrypto::FugaCrypto(Fuga* in_Fuga) {
 bool FugaCrypto::createKeys () {
     m_privkey = QCA::KeyGenerator().createRSA(1024);
     m_privkey.toPEMFile("fugakey.priv","mypassphrase");
+    return true;
 }
 
 // get public key
@@ -82,14 +83,14 @@ bool FugaCrypto::isPubkeyOf(std::string) {
 }
 
 // check if pubkey of other user already in save and return it
-QCA::PublicKey FugaCrypto::getPubkeyOf(std::string in_name) {
+QCA::PublicKey FugaCrypto::getPubkeyOf(std::string) {
     // TODO: search in locale file
     QCA::PublicKey pubkey = QCA::PublicKey::fromPEM(QString(""));
     return pubkey;
 }
 
 // save pubkey of other user
-void FugaCrypto::savePubkeyOf(std::string in_name, QCA::PublicKey in_pubkey) {
+void FugaCrypto::savePubkeyOf(std::string, QCA::PublicKey) {
     // TODO: save in locale file
     return;
 }

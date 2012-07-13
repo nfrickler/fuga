@@ -236,7 +236,11 @@ sub client_sverify {
 # login
 sub client_login {
     my ($User, $Conn, $data) = @_;
-    my ($name, $password, $ip, $port, $pubkey) = split ",", $data;
+    my ($data2, $password, $ip, $port, $pubkey) = split ",", $data;
+    my ($name, $network) = split "%", $data2;
+
+    # are we the right network?
+    return "a_login_failed-Wrong network" unless $network eq $networkname;
 
     # try to login
     my $result = $User->login($name, $password, $ip, $port, $pubkey);
@@ -250,9 +254,16 @@ sub client_login {
 # get tcp data for name
 sub client_name2tcp {
     my ($User, $data) = @_;
+    my ($name, $network) = split "%", $data;
+
+    # other network?
+    unless ($network eq $networkname) {
+	# TODO
+	return "a_name2tcp_failed-Ask someone else!";
+    }
 
     # get User
-    my $Req = FugaUser->new($DB, $data);
+    my $Req = FugaUser->new($DB, $name);
     return "a_name2tcp_failed-".$data.",No such user" unless $Req;
 
     # get data

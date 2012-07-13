@@ -62,8 +62,10 @@ void MFugaVideochat::askForPerson () {
 void MFugaVideochat::setConnectionData () {
 
     // load contact
-    m_partner = m_name_input->text().toStdString();
-    FugaContact* Partner = m_Fuga->getContacts()->getContact(m_partner);
+    FugaContact* Partner = m_Fuga->getContacts()->getContact(
+        m_name_input->text().toStdString()
+    );
+    m_partner = Partner->name();
 
     // user exists?
     if (Partner->isAccepted() && Partner->isHello()) {

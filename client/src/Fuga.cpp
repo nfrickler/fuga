@@ -11,7 +11,7 @@ Fuga::Fuga() {
     m_Config = new FugaConfig();
     m_Window = new FugaWindow(this);
     m_Contacts = new FugaContacts(this);
-    m_Me = new FugaMe(this,"");
+    m_Me = new FugaMe(this,"","");
 
     m_selected = NULL;
 
@@ -109,18 +109,17 @@ void Fuga::slot_mode_login() {
 void Fuga::slot_login(string in_name, string in_password) {
     disconnect(getWindow(), SIGNAL(sig_login(std::string,std::string)),
             this, SLOT(slot_login(std::string,std::string)));
-    m_name = in_name;
-    m_password = in_password;
+    m_Me = new FugaMe(this,in_name,in_password);
     doLogin();
 }
 
 // send login to server
 void Fuga::doLogin() {
     cout << "Fuga: Try to login..." << endl;
-    m_Me = new FugaMe(this,m_name);
+
     FugaDns* Dns = getContacts()->getDns();
     connect(Dns, SIGNAL(sig_loggedin(int)),this,SLOT(slot_checklogin(int)),Qt::UniqueConnection);
-    Dns->doLogin(m_name, m_password);
+    Dns->doLogin();
 }
 
 // get result of login request
@@ -131,8 +130,6 @@ void Fuga::slot_checklogin(int in_return) {
         case 0: {
             // success
             cout << "Fuga: Login success!" << endl;
-            m_name = "";
-            m_password = "";
             m_loggedin = true;
             break;
         }
@@ -151,8 +148,6 @@ void Fuga::slot_checklogin(int in_return) {
             }
 
             // login failed
-            m_name = "";
-            m_password = "";
             // no break
         }
         case 2: {

@@ -20,11 +20,10 @@ FugaDns::FugaDns(Fuga* in_Fuga)
 // ####################### resolving #########################
 
 // send request to server to resolve username
-bool FugaDns::resolve(std::string in_name) {
+void FugaDns::resolve(std::string in_name) {
     stringstream msg("");
     msg << "r_name2tcp-" << in_name << ";";
     send(msg.str().data());
-    return true;
 }
 
 // we have received an answer to a resolve request
@@ -57,21 +56,22 @@ void FugaDns::slot_doResolve (std::string in_type,std::vector<std::string> in_da
 // ########################## login ##############################
 
 // send login request to server
-void FugaDns::doLogin(std::string in_name, std::string in_password) {
+void FugaDns::doLogin() {
     connect(this, SIGNAL(sig_received(std::string,std::vector<std::string>)),
             this, SLOT(slot_checklogin(std::string,std::vector<std::string>)));
+    FugaMe* Me = m_Fuga->getMe();
     QHostAddress myip = QHostAddress(m_Fuga->getConfig()->getConfig("tcp_ip").c_str());
     quint16 myport = m_Fuga->getConfig()->getInt("tcp_port");
     stringstream ss("");
-    ss << "r_login-" << in_name << ","
-       << in_password << ","
+    ss << "r_login-" << Me->name() << ","
+       << Me->password() << ","
        << myip.toString().toStdString() << "," << myport << ","
        << m_Fuga->getContacts()->getCrypto()->getPubkey() <<";";
     send_direct(ss.str());
 }
 
 // check result of login request
-void FugaDns::slot_checklogin(std::string in_type,std::vector<std::string> in_data) {
+void FugaDns::slot_checklogin(std::string in_type,std::vector<std::string>) {
     cout << m_id << " | FugaDns: Got answer to login: " << in_type << endl;
 
     // successful login?

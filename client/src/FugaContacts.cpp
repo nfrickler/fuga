@@ -23,6 +23,15 @@ FugaContacts::FugaContacts (Fuga* in_Fuga) {
 // get Contact
 FugaContact* FugaContacts::getContact(string in_name) {
 
+    // add own network if noone provided
+    if (!in_name.empty()) {
+        if (in_name.find("%") == string::npos) {
+            stringstream msg("");
+            msg << in_name << "%" << m_Fuga->getMe()->network();
+            in_name = msg.str();
+        }
+    }
+
     // create new contact
     if (!isContact(in_name)) {
         cout << "FugaContacts: Number of Contacts: " << m_contacts.size() << endl;

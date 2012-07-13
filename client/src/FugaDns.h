@@ -11,12 +11,12 @@ class FugaDns : public FugaSocket {
     public:
         FugaDns(Fuga* in_Fuga);
 
-        bool resolve(std::string in_name);
+        void resolve(std::string in_name);
 
         bool isConnectionReady();
 
         bool isVerified();
-        void doLogin(std::string in_name, std::string in_password);
+        void doLogin();
         bool isLoggedin();
 
         void doDisconnect();

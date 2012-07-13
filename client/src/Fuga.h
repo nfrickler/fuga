@@ -37,9 +37,6 @@ class Fuga : public QObject {
         FugaWindow* m_Window;
         FugaContacts* m_Contacts;
 
-        std::string m_name;
-        std::string m_password;
-
         bool m_loggedin;
         MFugaVideochat* m_selected;
 

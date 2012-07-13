@@ -74,7 +74,7 @@ void FugaWindow::showLogin () {
     // create login elements
     QLabel *name_label = new QLabel(("Dein Loginname"));
     m_login_name = new QLineEdit();
-    m_login_name->setText(tr("Testuser1"));
+    m_login_name->setText(tr("Testuser1%testnet"));
     QLabel *pass_label = new QLabel(("Dein Passwort"));
     m_login_password = new QLineEdit();
     m_login_password->setInputMethodHints(Qt::ImhHiddenText| Qt::ImhNoPredictiveText|Qt::ImhNoAutoUppercase);
@@ -90,13 +90,13 @@ void FugaWindow::showLogin () {
 
     // combine login-elements in layout
     QGridLayout *mainLayout = new QGridLayout;
-    mainLayout->addWidget(name_label, 0, 0, Qt::AlignTop);
-    mainLayout->addWidget(m_login_name, 0, 1);
-    mainLayout->addWidget(pass_label, 1, 0);
-    mainLayout->addWidget(m_login_password, 1, 1);
-    mainLayout->addWidget(form_submit, 2, 0);
-    mainLayout->addWidget(form_cancel, 2, 1);
     mainLayout->addWidget(image, 3, 0);
+    mainLayout->addWidget(name_label, 1, 0, Qt::AlignTop);
+    mainLayout->addWidget(m_login_name, 1, 1);
+    mainLayout->addWidget(pass_label, 2, 0);
+    mainLayout->addWidget(m_login_password, 2, 1);
+    mainLayout->addWidget(form_submit, 3, 0);
+    mainLayout->addWidget(form_cancel, 3, 1);
 
     // create widget for layout
     QWidget *login_widget = new QWidget();

@@ -2,6 +2,7 @@
 #include "FugaHelperFuncs.h"
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
@@ -62,7 +63,7 @@ void FugaChat::slot_send() {
 }
 
 // get new messages of contacts
-void FugaChat::slot_receive (std::string in_name, std::string in_type, std::vector<std::string> in_data) {
+void FugaChat::slot_receive (std::string, std::string in_type, std::vector<std::string> in_data) {
     if (in_type.compare("m_chat_msg") != 0) return;
     if (in_data.size() != 2) return;
 
@@ -71,6 +72,12 @@ void FugaChat::slot_receive (std::string in_name, std::string in_type, std::vect
 
 // add msg to message-box
 void FugaChat::addMsg (string name, string msg) {
+
+    // skip network name if in same network
+    vector<string> splitted = split(name,"%");
+    if (splitted[1].compare(m_Fuga->getMe()->network()) == 0) {
+        name = splitted[0];
+    }
 
 	// add msg to msgbox
 	stringstream newtext ("");

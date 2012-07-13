@@ -197,7 +197,7 @@ void FugaContact::doVerify() {
 }
 
 // receive answer to verification request
-void FugaContact::slot_verify(string in_type, vector<string> in_data) {
+void FugaContact::slot_verify(string in_type, vector<string>) {
 
     // hello success
     if (in_type == "a_verify_ok") {
@@ -229,7 +229,6 @@ void FugaContact::doAccept() {
     if (!isAccepted()) {
 
         // connected to myself?
-        cout << m_id << " | names: " << m_name << " and " << m_Fuga->getMe()->name() << endl;
         if (m_name.compare(m_Fuga->getMe()->name()) == 0) {
             cout << "FugaContact: Connected with myself..." << endl;
             m_isaccepted = true;
