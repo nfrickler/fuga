@@ -5,6 +5,7 @@
 #include "FugaContact.h"
 #include "FugaSslServer.h"
 #include "FugaCrypto.h"
+#include "FugaNetDns.h"
 #include <map>
 #include <iostream>
 #include <sstream>
@@ -20,6 +21,7 @@ class FugaContacts : public QObject {
         FugaContact* getContact(std::string in_name);
         bool isContact(std::string name);
         FugaDns* getDns();
+        FugaNetDns* getNetDns();
         FugaCrypto* getCrypto();
         bool registerContact(FugaContact* in_Contact);
         void connectContact (FugaContact* in_Contact);
@@ -27,6 +29,7 @@ class FugaContacts : public QObject {
 	protected:
         Fuga* m_Fuga;
         FugaCrypto* m_Crypto;
+        FugaNetDns* m_NetDns;
         FugaDns* m_Dns;
         FugaSslServer* m_Server;
         std::map<std::string, FugaContact*> m_contacts;

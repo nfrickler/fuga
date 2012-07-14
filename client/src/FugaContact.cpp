@@ -89,13 +89,13 @@ FugaVideo* FugaContact::Video() {
 
 // ############################# status ########################
 
-// resolve username
+// resolve name
 void FugaContact::doResolve() {
     if (m_name == "" || isResolved()) return;
     FugaDns* Dns = m_Fuga->getContacts()->getDns();
     connect(Dns, SIGNAL(sig_resolved(std::string,QHostAddress*,quint16,std::string)),
             this, SLOT(slot_resolved(std::string,QHostAddress*,quint16,std::string)),Qt::UniqueConnection);
-    Dns->resolve(m_name);
+    Dns->doResolve(m_name);
 }
 
 // we have got the dns data

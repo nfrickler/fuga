@@ -17,18 +17,53 @@ use FugaUser;
 use FugaCrypto;
 use Switch;
 use DBI;
+use Getopt::Long;
 
-# get parameter
-our $server_host = $ARGV[0] || "127.0.0.1";
-our $server_port = $ARGV[1] || 7777;
-my $networkname = $ARGV[2] || "testnet";
+# get parameters
+our %options;
+GetOptions(
+    "net=s"	=> \$options{net},
+    "ip=s"	=> \$options{ip},
+    "port|p=i"	=> \$options{port},
+    "dbh=s"	=> \$options{db_host},
+    "dbu=s"	=> \$options{db_user},
+    "dbp=s"	=> \$options{db_password},
+    "dbdb=s"	=> \$options{db_database},
+    "help|h"	=> \$options{help},
+);
+$options{net}		||= "root";
+$options{ip}		||= "127.0.0.1";
+$options{port}		||= 7777;
+$options{db_host}	||= "localhost";
+$options{db_user}	||= "root";
+$options{db_password}	||= "toortoor";
+$options{db_database}	||= "fuga";
+
+# print help?
+if ($options{help}) {
+    print <<HELP;
+Usage: server.pl [options]
+
+Options:
+    --net    Network of this server ("root" starts root server)
+    --ip     Ip address of this server
+    --port   Port of this server
+    --dbh    Host for database
+    --dbu    User for database
+    --dbp    Password for database
+    --dbdb   Name of database
+    --help   Show this help
+
+HELP
+    exit;
+}
 
 # ####################################################################
 # Init
 # ####################################################################
 
 print "Server starting up...\n";
-print "Listening on $server_host port $server_port \n";
+print "Start listening on ".$options{ip}.":".$options{port}."\n";
 
 # get FugaCrypto
 my $Crypto = FugaCrypto->new();
@@ -36,8 +71,8 @@ die "Could not start Crypto" unless $Crypto;
 
 # get FugaServer
 my $Server = FugaServer->new(
-    $server_host,
-    $server_port,
+    $options{ip},
+    $options{port},
     \&handleRequest,
     \&handleStdin,
 );
@@ -45,16 +80,21 @@ my $Server = FugaServer->new(
 # start server
 $Server->start();
 
-# set parameters for database
-my $user = 'root';
-my $pass = "toortoor";
-my $database = "fuga";
-my $host = "localhost";
-my $driver = "DBI:mysql:$database:$host";
-
 # connect to database
-my $DB = DBI->connect($driver, $user, $pass) or die("Could not connect to database");
+my $driver = "DBI:mysql:".$options{db_database}.":".$options{db_host};
+my $DB = DBI->connect($driver, $options{db_user}, $options{db_password})
+    or die("Could not connect to database");
 print "Connected to database.\n";
+
+# create table if not existing
+open(my $dbfh, "<", "dbtable.sql") or die "Could not open database file!";
+local $/ = undef;
+my $request = <$dbfh>;
+close($dbfh);
+my $dbname = "fuga_".$options{net};
+$request =~ s/#db#/$dbname/;
+my $sth = $DB->prepare($request) or die $DBI::errstr;
+$sth->execute() or die $DBI::errstr;
 
 # ####################################################################
 # Run
@@ -94,7 +134,8 @@ sub handleStdin {
 
 	# password 'name' 'newpassword'
 	case "password" {
-	    return "FAIL Invalid password!" unless $User->validPassword($password);
+	    return "FAIL Invalid password!"
+		unless $User->validPassword($password);
 	    return "FAIL Invalid name!" unless $User->isValid();
 	    return $User->setPassword($password)
 		? "OK Password changed" : "FAIL Password could not be changed.";
@@ -193,7 +234,7 @@ sub handleRequest {
     $DEBUG and print "main->handleRequest: got '$typeid' and '$data'\n";
 
     # Connection to User
-    $Conn->{User} = FugaUser->new($DB) unless $Conn->{User};
+    $Conn->{User} = FugaUser->new($options{net},$DB) unless $Conn->{User};
     my $User = $Conn->{User};
 
     # handle request
@@ -202,15 +243,18 @@ sub handleRequest {
 	    return client_sverify($User,$Conn,$data);
 	}
 	case "r_login" {
+	    return "a_login_failed-Invalid action" if $options{net} eq "root";
 	    return client_login($User,$Conn,$data);
 	}
 	case "r_logout" {
+	    return "a_login_failed-Invalid action" if $options{net} eq "root";
 	    return client_logout($User);
 	}
 	case "r_name2tcp" {
 	    return client_name2tcp($User,$data);
 	}
 	case "r_delete" {
+	    return "a_login_failed-Invalid action" if $options{net} eq "root";
 	    return client_deleteMe($User, $Conn, $data);
 	}
     }
@@ -223,10 +267,10 @@ sub client_sverify {
     my ($User, $Conn, $data) = @_;
 
     # message to sign
-    my $msg2sign = $data."_".$networkname;
+    my $msg2sign = $data."_".$options{net};
 
     # construct and send message
-    my $msg = "a_sverify-" . $networkname . "," . time() . "," .
+    my $msg = "a_sverify-" . $options{net} . "," . time() . "," .
 	$Crypto->getPub() . "," .
 	$Crypto->sign($msg2sign) . ";";
     chomp($msg);
@@ -240,7 +284,7 @@ sub client_login {
     my ($name, $network) = split "%", $data2;
 
     # are we the right network?
-    return "a_login_failed-Wrong network" unless $network eq $networkname;
+    return "a_login_failed-Wrong network" if $network ne $options{net};
 
     # try to login
     my $result = $User->login($name, $password, $ip, $port, $pubkey);
@@ -255,19 +299,25 @@ sub client_login {
 sub client_name2tcp {
     my ($User, $data) = @_;
     my ($name, $network) = split "%", $data;
+    $network ||= "root";
 
+print "GOT client_name2tcp\n";
     # other network?
-    unless ($network eq $networkname) {
+    if ($network ne $options{net}) {
 	# TODO
 	return "a_name2tcp_failed-Ask someone else!";
     }
 
+print "GOT client_name2tcp 2\n";
     # get User
-    my $Req = FugaUser->new($DB, $name);
+    my $Req = FugaUser->new($network, $DB, $name);
     return "a_name2tcp_failed-".$data.",No such user" unless $Req;
-
+use Data::Dumper;
+print Dumper($Req);
+print "GOT client_name2tcp 3\n";
     # get data
     my ($ip, $port, $pubkey) = $Req->getTcp();
+print "GOT client_name2tcp 4\n";
     return "a_name2tcp_failed-".$data.",No data"
 	unless defined $ip and defined $port;
     return "a_name2tcp-$data,$ip,$port,$pubkey";

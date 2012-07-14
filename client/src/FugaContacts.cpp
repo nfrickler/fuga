@@ -7,15 +7,13 @@ using namespace std;
 FugaContacts::FugaContacts (Fuga* in_Fuga) {
     m_Fuga = in_Fuga;
     m_Dns = NULL;
+    m_NetDns = NULL;
 
     // start server
     startServer();
 
     // init crypto
     m_Crypto = new FugaCrypto(m_Fuga);
-
-    // connect to root
-    getDns();
 }
 
 // ################### contact handling #########################
@@ -97,6 +95,12 @@ void FugaContacts::slot_addconnection(QSslSocket* in_socket) {
 FugaDns* FugaContacts::getDns() {
     if (m_Dns == NULL) m_Dns = new FugaDns(m_Fuga);
     return m_Dns;
+}
+
+// get FugaNetDns object
+FugaNetDns* FugaContacts::getNetDns() {
+    if (m_NetDns == NULL) m_NetDns = new FugaNetDns(m_Fuga);
+    return m_NetDns;
 }
 
 // get FugaCrypto object

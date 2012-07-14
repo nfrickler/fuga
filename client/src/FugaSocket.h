@@ -12,7 +12,7 @@ class FugaSocket : public QObject {
     public:
         FugaSocket(Fuga* in_Fuga);
 
-        void doConnect();
+        virtual void doConnect();
         virtual void doDisconnect();
         std::string name();
         void send(std::string in_msg);
@@ -27,12 +27,16 @@ class FugaSocket : public QObject {
         QHostAddress*	m_tcp_ip;
         std::string     m_name;
         std::string		m_buffer;
+        std::string		m_buffer_direct;
         int             m_id;
+        bool            m_connectionrequested;
 
         void connectSocket();
         void send_direct(std::string in_msg);
         void addToBuffer(std::string in_msg);
         void sendBuffer();
+        void addToDirectBuffer(std::string in_msg);
+        void sendDirectBuffer();
 
     signals:
         void sig_connected();

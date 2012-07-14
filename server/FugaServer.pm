@@ -53,7 +53,6 @@ sub start {
     my $self = shift;
 
     # start socket
-    print "Start socket on ".$self->{host}." and ".$self->{port}."\n";
     $self->{socket} = IO::Socket::SSL->new(
 	LocalHost => $self->{host},
 	LocalPort => $self->{port},

@@ -5,7 +5,6 @@ using namespace std;
 
 // constructor
 FugaSocket::FugaSocket(Fuga* in_Fuga) {
-
     m_Fuga = in_Fuga;
     m_name = "";
     m_socket = NULL;
@@ -13,7 +12,7 @@ FugaSocket::FugaSocket(Fuga* in_Fuga) {
     m_tcp_port = 0;
     m_buffer = "";
     m_id = rand() % 100;
-
+    m_connectionrequested = false;
 }
 
 // connect signals to socket
@@ -46,7 +45,7 @@ std::string FugaSocket::name() {
 
 // connect
 void FugaSocket::doConnect() {
-    if (isConnected()) return;
+    if (isConnected() || m_connectionrequested) return;
 
     // username already resolved?
     if (m_tcp_ip == NULL || m_tcp_port == 0) {
@@ -60,6 +59,7 @@ void FugaSocket::doConnect() {
     m_socket = new QSslSocket(0);
     connectSocket();
     m_socket->connectToHostEncrypted(m_tcp_ip->toString(), m_tcp_port);
+    m_connectionrequested = true;
 }
 
 // connection established
@@ -67,6 +67,7 @@ void FugaSocket::slot_connected() {
     cout << m_id << " | FugaSocket: Connection established" << endl;
     disconnect(m_socket, SIGNAL(encrypted()),this, SLOT(slot_connected()));
     emit sig_connected();
+    sendDirectBuffer();
 }
 
 // connection established?
@@ -131,6 +132,12 @@ bool FugaSocket::isConnectionReady() {
 
 // actually send message
 void FugaSocket::send_direct(string in_msg) {
+    if (!isConnected()) {
+        cout << m_id << " | FugaSocket: direct send failed: Not connected" << endl;
+        addToDirectBuffer(in_msg);
+        doConnect();
+        return;
+    }
     if (!m_socket->write(in_msg.c_str())) {
         cout << m_id << " | FugaSocket: send failed: " << m_socket->errorString().toAscii().data() << endl;
     }
@@ -146,7 +153,24 @@ void FugaSocket::addToBuffer(std::string in_msg) {
 
 void FugaSocket::sendBuffer() {
     cout << m_id << " | FugaSocket: Sending buffer..." << endl;
-    if (!m_buffer.empty()) send(m_buffer);
+    sendDirectBuffer();
+    std::string tmpbuf = m_buffer;
+    m_buffer = "";
+    if (!tmpbuf.empty()) send(tmpbuf);
+}
+
+void FugaSocket::addToDirectBuffer(std::string in_msg) {
+    stringstream ss("");
+    ss << m_buffer_direct;
+    ss << in_msg;
+    m_buffer_direct = ss.str();
+}
+
+void FugaSocket::sendDirectBuffer() {
+    cout << m_id << " | FugaSocket: Sending direct buffer..." << endl;
+    std::string tmpbuf = m_buffer_direct;
+    m_buffer_direct = "";
+    if (!tmpbuf.empty()) send_direct(tmpbuf);
 }
 
 // ############################# receive data ########################

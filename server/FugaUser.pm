@@ -21,11 +21,12 @@ use DBI;
 use Digest::SHA qw(sha1 sha1_hex);
 
 sub new {
-    my ($obj, $DB, $name, $logged) = @_;
+    my ($obj, $net, $DB, $name, $logged) = @_;
+    return undef unless $net;
     return undef unless $DB;
 
     # user exists?
-    return undef if $name and !isUser(undef, $name, $DB);
+    return undef if $name and !isUser(undef, $name, $DB, $net);
 
     # create instance
     $DEBUG and print "FugaUser->new: Create new object\n";
@@ -33,6 +34,7 @@ sub new {
 	DB => $DB,
 	name => $name || '',
 	logged => $logged || 0,
+	net => $net,
     };
     bless $self, 'FugaUser';
     return $self;
@@ -52,7 +54,7 @@ sub login {
 
 	    # update database
 	    my $sql = "
-		UPDATE users
+		UPDATE #db#
 		SET dateOfLast = NOW(),
 		    dateOfLogin = NOW(),
 		    tcp_ip = '$ip',
@@ -72,9 +74,9 @@ sub login {
     return 0 unless $self->validName($name) and $self->validPassword($password);
 
     # create profile in database (locks name!)
-    $password = sha1_hex($password);
+    $password = sha1_hex($name."_".$password);
     my $sql = "
-	INSERT INTO users
+	INSERT INTO #db#
 	SET name = '$name',
 	    password = '$password',
 	    dateOfLast = NOW(),
@@ -95,10 +97,10 @@ sub setPassword {
     my ($self, $password) = @_;
     return 0 unless $self->{logged};
     return 0 unless $self->validPassword($password);
-    $password = sha1_hex($password);
+    $password = sha1_hex($self->{name}."_".$password);
 
     my $sql = "
-	UPDATE users
+	UPDATE #db#
 	SET password = '$password'
 	WHERE name = '".$self->{name}."'";
     return $self->_db($sql, 1);
@@ -109,7 +111,7 @@ sub logout {
     return 0 unless $self->{logged};
 
     my $sql = "
-	UPDATE users
+	UPDATE #db#
 	SET logged = 0
 	WHERE name = '".$self->{name}."';";
     $self->_db($sql, 1);
@@ -124,7 +126,7 @@ sub delete {
     return 0 unless $self->{logged};
 
     my $sql = "
-	DELETE FROM users
+	DELETE FROM #db#
 	WHERE name = '".$self->{name}."';";
     my $result = $self->_db($sql, 1);
     return 0 unless $result;
@@ -151,7 +153,7 @@ sub getInfo {
 	    dateOfRegistration,
 	    dateOfLogin,
 	    dateOfLast
-	FROM users
+	FROM #db#
 	WHERE name = '".$name."';";
     return $self->_db($sql, 0);
 }
@@ -166,7 +168,7 @@ sub getAll {
 	    dateOfRegistration,
 	    dateOfLogin,
 	    dateOfLast
-	FROM users
+	FROM #db#
 	ORDER BY name;";
     return $self->_db($sql, 0);
 }
@@ -178,7 +180,7 @@ sub setTcp {
 
     # update database
     my $sql = "
-	UPDATE users
+	UPDATE #db#
 	SET tcp_ip = '$ip',
 	    tcp_port = '$port'
 	WHERE name = '".$self->name()."';";
@@ -193,7 +195,7 @@ sub getTcp {
     # request database
     my $sql = "
 	SELECT tcp_ip, tcp_port, pubkey
-	FROM users
+	FROM #db#
 	WHERE name = '".$self->name()."';";
     my $result = $self->_db($sql, 0);
     return 0 unless $result and @$result;
@@ -213,28 +215,27 @@ sub isValid {
 # ####################################################################
 
 sub isUser {
-    my ($self, $name, $DB) = @_;
-    $DB = $self->{DB} if $self and !$DB;
+    my ($self, $name, $DB, $network) = @_;
     my $request = "
 	SELECT name
-	FROM users
+	FROM #db#
 	WHERE name = '$name'
 	    AND TIMESTAMPDIFF(MONTH, dateOfLogin, NOW()) < 6
 	    OR (dateOfLogin = '0000-00-00 00:00:00'
 		AND TIMESTAMPDIFF(MINUTE, dateOfLast, NOW()) < 2);";
-    my $result = FugaUser->_db($request, 0, $DB);
+    my $result = _db($self, $request, 0, $DB, $network);
     return (@$result) ? 1 : 0;
 }
 
 sub isValidLogin {
     my ($self, $name, $password) = @_;
     $name = $self->{name} unless $name;
-    $password = sha1_hex($password);
+    $password = sha1_hex($name."_".$password);
 
     # check login data
     my $request = "
 	SELECT name
-	FROM users
+	FROM #db#
 	WHERE name = '$name'
 	    AND password = '$password';";
     my $result = $self->_db($request, 0);
@@ -265,8 +266,13 @@ sub validatePassword {
 
 # request database
 sub _db {
-    my ($self, $request, $sendOnly, $DB) = @_;
+    my ($self, $request, $sendOnly, $DB, $network) = @_;
     $DB = $self->{DB} if $self and !$DB;
+    $network = $self->{net} if $self and !$network;
+
+    # set name of database
+    my $dbname = "fuga_".$network;
+    $request =~ s/#db#/$dbname/g;
 
     # send request
     $DEBUG and print "FugaUser->_db: sql: $request\n";

@@ -27,7 +27,9 @@ HEADERS = \
     src/FugaChat.h \
     src/FugaSslServer.h \
     src/FugaCrypto.h \
-    src/FugaSocket.h
+    src/FugaSocket.h \
+    src/FugaNetDns.h \
+    src/FugaServerSocket.h
 SOURCES = src/main.cpp \
     src/FugaConfig.cpp \
     src/FugaHelperFuncs.cpp \
@@ -43,7 +45,9 @@ SOURCES = src/main.cpp \
     src/FugaChat.cpp \
     src/FugaSslServer.cpp \
     src/FugaCrypto.cpp \
-    src/FugaSocket.cpp
+    src/FugaSocket.cpp \
+    src/FugaNetDns.cpp \
+    src/FugaServerSocket.cpp
 
 # gstreamer
 CONFIG += link_pkgconfig
