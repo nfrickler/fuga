@@ -6,7 +6,6 @@ using namespace std;
 // constructor
 FugaContacts::FugaContacts (Fuga* in_Fuga) {
     m_Fuga = in_Fuga;
-    m_Dns = NULL;
     m_NetDns = NULL;
 
     // start server
@@ -92,9 +91,22 @@ void FugaContacts::slot_addconnection(QSslSocket* in_socket) {
 // ########################## dns ###########################
 
 // get FugaDns object
-FugaDns* FugaContacts::getDns() {
-    if (m_Dns == NULL) m_Dns = new FugaDns(m_Fuga);
-    return m_Dns;
+FugaDns* FugaContacts::getDns(string in_name) {
+
+    // create new contact
+    if (!isDns(in_name)) {
+        cout << "FugaContacts: Number of Dns: " << m_dns.size() << endl;
+        cout << "FugaContacts: Create new Dns: '" << in_name << "'" << endl;
+        m_dns[in_name] = new FugaDns(m_Fuga, in_name);
+    }
+
+    return m_dns[in_name];
+}
+
+// do we have connection to network xyz?
+bool FugaContacts::isDns (string in_name) {
+    map<string,FugaDns*>::const_iterator it = m_dns.find(in_name);
+    return it!=m_dns.end();
 }
 
 // get FugaNetDns object

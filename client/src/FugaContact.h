@@ -16,6 +16,7 @@ class FugaContact : public FugaSocket {
         FugaContact(Fuga* in_Fuga, std::string in_name);
         FugaContact(Fuga* in_Fuga, QSslSocket* in_socket);
         void init();
+        std::string getNetwork();
 
         FugaVideo*      Video();
         FugaStreamer*   Streamer();

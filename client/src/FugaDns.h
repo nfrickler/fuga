@@ -10,6 +10,7 @@ class FugaDns : public FugaServerSocket {
 
     public:
         FugaDns(Fuga* in_Fuga);
+        FugaDns(Fuga* in_Fuga, std::string in_name);
 
         void doConnect();
         bool isConnectionReady();

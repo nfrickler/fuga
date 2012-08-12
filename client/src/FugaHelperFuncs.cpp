@@ -125,3 +125,11 @@ std::string trim(std::string& pString,const std::string& pWhitespace)
 
     return pString.substr(beginStr, range);
 }
+
+// get network from name
+std::string name2network(std::string in_name) {
+    if (in_name.empty()) return "";
+    vector<string> splitted = split(in_name,"%");
+    if (splitted.size() != 2) return "";
+    return splitted[1];
+}

@@ -20,7 +20,8 @@ class FugaContacts : public QObject {
         FugaContacts(Fuga* in_Fuga);
         FugaContact* getContact(std::string in_name);
         bool isContact(std::string name);
-        FugaDns* getDns();
+        FugaDns* getDns(std::string name);
+        bool isDns(std::string in_name);
         FugaNetDns* getNetDns();
         FugaCrypto* getCrypto();
         bool registerContact(FugaContact* in_Contact);
@@ -30,9 +31,9 @@ class FugaContacts : public QObject {
         Fuga* m_Fuga;
         FugaCrypto* m_Crypto;
         FugaNetDns* m_NetDns;
-        FugaDns* m_Dns;
         FugaSslServer* m_Server;
         std::map<std::string, FugaContact*> m_contacts;
+        std::map<std::string, FugaDns*> m_dns;
 
         void startServer();
 

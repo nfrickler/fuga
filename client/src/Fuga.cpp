@@ -117,7 +117,7 @@ void Fuga::slot_login(string in_name, string in_password) {
 void Fuga::doLogin() {
     cout << "Fuga: Try to login..." << endl;
 
-    FugaDns* Dns = getContacts()->getDns();
+    FugaDns* Dns = getContacts()->getDns(m_Me->network());
     connect(Dns, SIGNAL(sig_loggedin(int)),this,SLOT(slot_checklogin(int)),Qt::UniqueConnection);
     Dns->doLogin();
 }

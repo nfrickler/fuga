@@ -92,7 +92,7 @@ FugaVideo* FugaContact::Video() {
 // resolve name
 void FugaContact::doResolve() {
     if (m_name == "" || isResolved()) return;
-    FugaDns* Dns = m_Fuga->getContacts()->getDns();
+    FugaDns* Dns = m_Fuga->getContacts()->getDns(name2network(m_name));
     connect(Dns, SIGNAL(sig_resolved(std::string,QHostAddress*,quint16,std::string)),
             this, SLOT(slot_resolved(std::string,QHostAddress*,quint16,std::string)),Qt::UniqueConnection);
     Dns->doResolve(m_name);
@@ -104,7 +104,7 @@ void FugaContact::slot_resolved(std::string in_name, QHostAddress* in_ip, quint1
     cout << m_id << " | FugaContact: slot_resolved: " << m_name << endl;
 
     // disconnect
-    FugaDns* Dns = m_Fuga->getContacts()->getDns();
+    FugaDns* Dns = m_Fuga->getContacts()->getDns(name2network(m_name));
     disconnect(Dns, SIGNAL(sig_resolved(std::string,QHostAddress*,quint16,std::string)),
             this, SLOT(slot_resolved(std::string,QHostAddress*,quint16,std::string)));
 

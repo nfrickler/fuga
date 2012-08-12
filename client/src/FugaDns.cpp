@@ -5,11 +5,18 @@
 
 using namespace std;
 
-// constructor
+// constructors
 FugaDns::FugaDns(Fuga* in_Fuga)
     : FugaServerSocket(in_Fuga)
 {
-    m_name = "mydns";
+    m_name = "unknown";
+    m_isloggedin = false;
+}
+
+FugaDns::FugaDns(Fuga* in_Fuga, string in_name)
+    : FugaServerSocket(in_Fuga)
+{
+    m_name = in_name;
     m_isloggedin = false;
 }
 

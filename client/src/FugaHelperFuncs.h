@@ -20,5 +20,7 @@ quint16 string2quint16(std::string s);
 int char2int(char* s);
 void showError(std::string in_msg);
 
+std::string name2network(std::string in_name);
+
 
 #endif // FUGAHELPER_FUNCS_H

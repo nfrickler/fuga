@@ -30,8 +30,5 @@ string FugaMe::password() {
 }
 
 string FugaMe::network() {
-    if (m_name.empty()) return "";
-    vector<string> splitted = split(m_name,"%");
-    if (splitted.size() != 2) return "";
-    return splitted[1];
+    return name2network(m_name);
 }
